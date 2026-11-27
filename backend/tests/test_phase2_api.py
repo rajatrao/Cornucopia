@@ -317,3 +317,88 @@ def test_compiler_endpoints_over_api(client: TestClient) -> None:
         assert imp["impact"]["counts"]["commitment"] == 1
         g = c.get("/api/v1/compiler/graph").json()
         assert any(n["kind"] == "batch" for n in g["nodes"])
+
+
+def test_optimizer_run_is_verified_and_persisted(client: TestClient) -> None:
+    with client as c:
+        rice = _post(
+            c,
+            "/api/v1/resources/ingredients",
+            {"name": "Rice", "category": "grain", "base_unit": "g"},
+        )
+        quinoa = _post(
+            c,
+            "/api/v1/resources/ingredients",
+            {"name": "Quinoa", "category": "grain", "base_unit": "g"},
+        )
+        recipe = _post(
+            c,
+            "/api/v1/resources/recipes",
+            {"name": "Pilaf", "yield_portions": "50", "prep_minutes": 30},
+        )
+        _post(
+            c,
+            "/api/v1/resources/recipe-ingredients",
+            {
+                "recipe_id": recipe["id"],
+                "ingredient_id": rice["id"],
+                "quantity": "12",
+                "unit": "lb",
+            },
+        )
+        _post(
+            c,
+            "/api/v1/resources/substitutions",
+            {"ingredient_id": rice["id"], "substitute_id": quinoa["id"], "ratio": "1"},
+        )
+        meal = _post(c, "/api/v1/resources/meals", {"name": "Plate"})
+        _post(
+            c,
+            "/api/v1/resources/meal-components",
+            {"meal_id": meal["id"], "recipe_id": recipe["id"], "portions": "1"},
+        )
+        _post(
+            c,
+            "/api/v1/resources/teams",
+            {"name": "Kitchen", "capacity_portions_per_hour": "100", "available_hours": "5"},
+        )
+        route = _post(
+            c,
+            "/api/v1/resources/deliveries",
+            {"route_name": "A", "capacity_meals": 300, "departs_at": "2030-01-01T10:00:00Z"},
+        )
+        _post(
+            c,
+            "/api/v1/resources/commitments",
+            {
+                "recipient": "Shelter",
+                "meal_id": meal["id"],
+                "meals_count": 100,
+                "due_at": "2030-01-01T12:00:00Z",
+                "delivery_id": route["id"],
+            },
+        )
+        _post(
+            c,
+            "/api/v1/events",
+            {
+                "idempotency_key": "donation-quinoa-api-1",
+                "event": {
+                    "type": "DONATION_CREATED",
+                    "description": "Quinoa",
+                    "received": True,
+                    "lots": [{"ingredient_id": quinoa["id"], "quantity": "24", "unit": "lb"}],
+                },
+            },
+        )
+        out = _post(c, "/api/v1/optimizer/runs", {})
+        rep = out["report"]
+        assert rep["verdict"] == "verified_feasible" and rep["solver_status"] == "OPTIMAL"
+        assert rep["plan"]["metrics"]["meals_planned"] == 100
+        assert len(rep["plan"]["substitutions"]) == 1
+        runs = c.get("/api/v1/optimizer/runs").json()
+        assert runs[0]["id"] == out["run_id"] and runs[0]["verdict"] == "verified_feasible"
+        detail = c.get(f"/api/v1/optimizer/runs/{out['run_id']}").json()
+        rec = [r for r in detail["results"] if r["recommended"]]
+        assert len(rec) == 1 and rec[0]["fingerprint"] == rep["fingerprint"]
+        assert c.post("/api/v1/optimizer/runs", json={"bogus": 1}).status_code == 422

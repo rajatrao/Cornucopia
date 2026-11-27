@@ -14,6 +14,7 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from cornucopia import __version__
 from cornucopia.api.compiler import build_router as build_compiler_router
 from cornucopia.api.operations import build_router
+from cornucopia.api.optimizer import build_router as build_optimizer_router
 from cornucopia.api.schemas import DbHealthOut, Liveness, ProbeCreate, ProbeOut
 from cornucopia.config import Settings, TransportMode, get_settings
 from cornucopia.persistence.client import SupabaseClient, SupabaseError
@@ -146,6 +147,7 @@ def create_app(settings: Settings | None = None, client: SupabaseClient | None =
 
     app.include_router(build_router(), dependencies=[Auth])
     app.include_router(build_compiler_router(), dependencies=[Auth])
+    app.include_router(build_optimizer_router(), dependencies=[Auth])
     return app
 
 

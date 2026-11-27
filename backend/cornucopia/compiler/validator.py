@@ -92,8 +92,6 @@ def validate_plan(snap: OperationalSnapshot, plan: Plan) -> ValidationReport:
                     line.quantity_base * comp.portions * cp.planned / recipe.yield_portions
                 )
         portions_exact += needs.portions_per_meal * cp.planned
-        if c.delivery_id is not None:
-            route_meals[c.delivery_id] = route_meals.get(c.delivery_id, 0) + cp.planned
 
     # ---- substitutions
     rules = {s.id: s for s in snap.substitutions}
@@ -156,7 +154,22 @@ def validate_plan(snap: OperationalSnapshot, plan: Plan) -> ValidationReport:
         f"teams prepare {total_load} portions but plan needs {ceil_int(portions_exact)}",
     )
 
-    # ---- delivery capacity
+    # ---- delivery: every planned meal of a routed commitment rides a usable route
+    routed: dict[UUID, int] = {}
+    for ra in plan.routing:
+        rep.check(ra.meals > 0, "empty route assignment")
+        route_meals[ra.delivery_id] = route_meals.get(ra.delivery_id, 0) + ra.meals
+        routed[ra.commitment_id] = routed.get(ra.commitment_id, 0) + ra.meals
+    for cp in plan.commitments:
+        c = commitments.get(cp.commitment_id)
+        if c is None or cp.planned == 0:
+            continue
+        if c.delivery_id is not None or cp.commitment_id in routed:
+            rep.check(
+                routed.get(cp.commitment_id, 0) == cp.planned,
+                f"{c.recipient}: {routed.get(cp.commitment_id, 0)} meals routed, "
+                f"{cp.planned} planned",
+            )
     routes = delivery_capacities(snap)
     for rid, meals in route_meals.items():
         r = routes.get(rid)

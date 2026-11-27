@@ -7,6 +7,7 @@ facts, so each write is one audited transaction.
 
 from __future__ import annotations
 
+import builtins
 import uuid
 from abc import ABC, abstractmethod
 from typing import Any
@@ -64,6 +65,14 @@ class OperationsRepository(ABC):
 
     @abstractmethod
     def snapshot(self, org: UUID) -> dict[str, Any]: ...
+
+    @abstractmethod
+    def optimization_results(self, run_id: UUID) -> builtins.list[Row]: ...
+
+    @abstractmethod
+    def record_optimization_run(
+        self, org: UUID, actor: str, run: dict[str, Any], results: builtins.list[dict[str, Any]]
+    ) -> UUID: ...
 
     @abstractmethod
     def ingest_event(
@@ -174,6 +183,21 @@ class SupabaseOperationsRepository(OperationsRepository):
             "get_operational_snapshot", {"p_organization_id": str(org)}
         )
         return raw
+
+    def optimization_results(self, run_id: UUID) -> builtins.list[Row]:
+        """Results of a run; callers must have checked the run's organization."""
+        return self._db.select(
+            "optimization_results", filters={"run_id": f"eq.{run_id}"}, order="candidate.asc"
+        )
+
+    def record_optimization_run(
+        self, org: UUID, actor: str, run: dict[str, Any], results: builtins.list[dict[str, Any]]
+    ) -> UUID:
+        raw = self._db.rpc(
+            "record_optimization_run",
+            {"p_organization_id": str(org), "p_actor": actor, "p_run": run, "p_results": results},
+        )
+        return UUID(str(raw["run_id"]))
 
 
 def new_correlation_id() -> UUID:

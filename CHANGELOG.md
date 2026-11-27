@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.4.0 (2026-11-27): Phase 4 CP-SAT recovery optimizer
+
+- CP-SAT model with exact rational ingredient needs, substitutions, rerouting and hard diet, stock, kitchen and route limits.
+- Six-stage lexicographic optimisation: commitments met, meals served, minimal change, waste, delivery disruption, earlier-due tie-break.
+- Exact post-processing plus independent validation; `verdict` is `verified_*` only when the validator agrees.
+- Infeasibility diagnosis (minimum extra resources) and alternative plans with diffs.
+- Deterministic solving: single worker, fixed seed, deterministic-time limits.
+- Append-only `optimization_runs` / `optimization_results` with the `record_optimization_run` RPC.
+- Optimizer API and page. Plan model gains `routing`, which the validator checks for every plan.
+- Frontend retries idempotent reads once, so a paused Sprite's wake-up is not shown as an outage.
+
 ## 0.3.0 (2026-11-27): Phase 3 deterministic resource compiler
 
 - `get_operational_snapshot` RPC: one consistent read of all planning inputs.

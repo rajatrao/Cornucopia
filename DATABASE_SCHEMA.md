@@ -8,6 +8,7 @@ Schema: `cornucopia` (Supabase Postgres 17). Source of truth: SQLAlchemy models 
 | `20261127030000_domain_events` | domain tables, operational journal, audit log, triggers, `ensure_organization()`, `ingest_event()` |
 | `20261127031500_resource_writes` | `write_resource()`, removal of direct table writes |
 | `20261127032000_snapshot` | `get_operational_snapshot()`: one consistent read for the compiler |
+| `20261127034000_optimization_runs` | `optimization_runs`, `optimization_results` (append-only), `record_optimization_run()` |
 
 ## Conventions
 
@@ -34,6 +35,8 @@ Schema: `cornucopia` (Supabase Postgres 17). Source of truth: SQLAlchemy models 
 | `deliveries` | route runs | status `scheduled/delayed/cancelled/completed` |
 | `commitments` | promised meals | count > 0, diets ⊆ known diets, `version` increments on change |
 | `meal_batches` | planned cooking | populated from Phase 3 |
+| `optimization_runs` | every solver execution: config, status, verdict, objectives, stages, diagnosis, timing, actor | append-only |
+| `optimization_results` | candidate plans of a run, recommended one stores the full plan JSON | append-only; exactly one recommended per run (partial unique index) |
 | `operational_events` | append-only journal | unique `(organization_id, idempotency_key)`; only processing columns may change |
 | `audit_records` | row-level audit | append-only, written by trigger in the same transaction |
 

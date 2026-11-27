@@ -77,6 +77,126 @@
         "title": "AuditOut",
         "type": "object"
       },
+      "CandidateOut": {
+        "properties": {
+          "commitments_feasible": {
+            "title": "Commitments Feasible",
+            "type": "integer"
+          },
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "diff_vs_recommended": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PlanDiff"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "fingerprint": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fingerprint"
+          },
+          "meals_planned": {
+            "title": "Meals Planned",
+            "type": "integer"
+          },
+          "meals_rerouted": {
+            "title": "Meals Rerouted",
+            "type": "integer"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "objectives": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Objectives",
+            "type": "object"
+          },
+          "substitutions_used": {
+            "title": "Substitutions Used",
+            "type": "integer"
+          },
+          "verdict": {
+            "enum": [
+              "verified_feasible",
+              "verified_partial",
+              "unverified",
+              "failed"
+            ],
+            "title": "Verdict",
+            "type": "string"
+          },
+          "violations": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Violations",
+            "type": "array"
+          }
+        },
+        "required": [
+          "name",
+          "description",
+          "verdict",
+          "fingerprint",
+          "meals_planned",
+          "commitments_feasible",
+          "substitutions_used",
+          "meals_rerouted",
+          "objectives",
+          "violations"
+        ],
+        "title": "CandidateOut",
+        "type": "object"
+      },
+      "Change": {
+        "properties": {
+          "after": {
+            "title": "After",
+            "type": "string"
+          },
+          "before": {
+            "title": "Before",
+            "type": "string"
+          },
+          "field": {
+            "title": "Field",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "id",
+          "field",
+          "before",
+          "after"
+        ],
+        "title": "Change",
+        "type": "object"
+      },
       "CommitmentChanged": {
         "additionalProperties": false,
         "properties": {
@@ -381,6 +501,48 @@
           "capacity"
         ],
         "title": "DeliveryLoad",
+        "type": "object"
+      },
+      "DiagnosisOut": {
+        "properties": {
+          "blocked": {
+            "additionalProperties": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "title": "Blocked",
+            "type": "object"
+          },
+          "explanation": {
+            "title": "Explanation",
+            "type": "string"
+          },
+          "fully_serviceable": {
+            "title": "Fully Serviceable",
+            "type": "boolean"
+          },
+          "shortfalls": {
+            "items": {
+              "$ref": "#/components/schemas/ShortfallOut"
+            },
+            "title": "Shortfalls",
+            "type": "array"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "fully_serviceable",
+          "shortfalls",
+          "blocked",
+          "explanation"
+        ],
+        "title": "DiagnosisOut",
         "type": "object"
       },
       "Diet": {
@@ -1239,6 +1401,119 @@
         "title": "LotOut",
         "type": "object"
       },
+      "OptimizationReport": {
+        "description": "What the agent and the UI consume. ``verdict`` is the only feasibility\nlabel: it is ``verified_*`` only if the independent validator agreed.",
+        "properties": {
+          "candidates": {
+            "items": {
+              "$ref": "#/components/schemas/CandidateOut"
+            },
+            "title": "Candidates",
+            "type": "array"
+          },
+          "config": {
+            "additionalProperties": true,
+            "title": "Config",
+            "type": "object"
+          },
+          "diagnosis": {
+            "$ref": "#/components/schemas/DiagnosisOut"
+          },
+          "fingerprint": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fingerprint"
+          },
+          "model_stats": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Model Stats",
+            "type": "object"
+          },
+          "objectives": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Objectives",
+            "type": "object"
+          },
+          "plan": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Plan"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "solver_status": {
+            "title": "Solver Status",
+            "type": "string"
+          },
+          "stages": {
+            "items": {
+              "$ref": "#/components/schemas/StageOut"
+            },
+            "title": "Stages",
+            "type": "array"
+          },
+          "state_version": {
+            "title": "State Version",
+            "type": "integer"
+          },
+          "validation_checks": {
+            "title": "Validation Checks",
+            "type": "integer"
+          },
+          "verdict": {
+            "enum": [
+              "verified_feasible",
+              "verified_partial",
+              "unverified",
+              "failed"
+            ],
+            "title": "Verdict",
+            "type": "string"
+          },
+          "violations": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Violations",
+            "type": "array"
+          },
+          "wall_ms": {
+            "title": "Wall Ms",
+            "type": "number"
+          }
+        },
+        "required": [
+          "state_version",
+          "config",
+          "solver_status",
+          "verdict",
+          "plan",
+          "fingerprint",
+          "validation_checks",
+          "violations",
+          "stages",
+          "objectives",
+          "model_stats",
+          "wall_ms",
+          "diagnosis",
+          "candidates"
+        ],
+        "title": "OptimizationReport",
+        "type": "object"
+      },
       "OrgOut": {
         "properties": {
           "id": {
@@ -1324,6 +1599,14 @@
             "title": "Recipes",
             "type": "array"
           },
+          "routing": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/RouteAssignment"
+            },
+            "title": "Routing",
+            "type": "array"
+          },
           "shortages": {
             "items": {
               "$ref": "#/components/schemas/Shortage"
@@ -1366,6 +1649,47 @@
           "metrics"
         ],
         "title": "Plan",
+        "type": "object"
+      },
+      "PlanDiff": {
+        "properties": {
+          "after_fingerprint": {
+            "title": "After Fingerprint",
+            "type": "string"
+          },
+          "before_fingerprint": {
+            "title": "Before Fingerprint",
+            "type": "string"
+          },
+          "changes": {
+            "items": {
+              "$ref": "#/components/schemas/Change"
+            },
+            "title": "Changes",
+            "type": "array"
+          },
+          "commitments_changed": {
+            "title": "Commitments Changed",
+            "type": "integer"
+          },
+          "identical": {
+            "title": "Identical",
+            "type": "boolean"
+          },
+          "meals_planned_delta": {
+            "title": "Meals Planned Delta",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "before_fingerprint",
+          "after_fingerprint",
+          "identical",
+          "meals_planned_delta",
+          "commitments_changed",
+          "changes"
+        ],
+        "title": "PlanDiff",
         "type": "object"
       },
       "PlanMetrics": {
@@ -1619,6 +1943,156 @@
         "title": "RecipePlan",
         "type": "object"
       },
+      "RouteAssignment": {
+        "description": "Meals of a commitment carried on a delivery route.\n\nThe baseline keeps every commitment on its assigned route; the optimizer\nmay move meals to another usable route (a plan change needing approval).",
+        "properties": {
+          "commitment_id": {
+            "format": "uuid",
+            "title": "Commitment Id",
+            "type": "string"
+          },
+          "delivery_id": {
+            "format": "uuid",
+            "title": "Delivery Id",
+            "type": "string"
+          },
+          "meals": {
+            "title": "Meals",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "commitment_id",
+          "delivery_id",
+          "meals"
+        ],
+        "title": "RouteAssignment",
+        "type": "object"
+      },
+      "RunOut": {
+        "properties": {
+          "labels": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Labels",
+            "type": "object"
+          },
+          "report": {
+            "$ref": "#/components/schemas/OptimizationReport"
+          },
+          "run_id": {
+            "format": "uuid",
+            "title": "Run Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "run_id",
+          "labels",
+          "report"
+        ],
+        "title": "RunOut",
+        "type": "object"
+      },
+      "RunRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "allow_rerouting": {
+            "default": true,
+            "title": "Allow Rerouting",
+            "type": "boolean"
+          },
+          "correlation_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Correlation Id"
+          },
+          "include_pledged": {
+            "default": false,
+            "title": "Include Pledged",
+            "type": "boolean"
+          },
+          "stage_deterministic_time": {
+            "default": 10.0,
+            "exclusiveMinimum": 0.0,
+            "maximum": 60.0,
+            "title": "Stage Deterministic Time",
+            "type": "number"
+          },
+          "use_substitutions": {
+            "default": true,
+            "title": "Use Substitutions",
+            "type": "boolean"
+          },
+          "waste_horizon_hours": {
+            "default": 72,
+            "maximum": 720.0,
+            "minimum": 0.0,
+            "title": "Waste Horizon Hours",
+            "type": "integer"
+          }
+        },
+        "title": "RunRequest",
+        "type": "object"
+      },
+      "RunSummary": {
+        "properties": {
+          "created_at": {
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "objectives": {
+            "additionalProperties": true,
+            "title": "Objectives",
+            "type": "object"
+          },
+          "requested_by": {
+            "title": "Requested By",
+            "type": "string"
+          },
+          "solver_status": {
+            "title": "Solver Status",
+            "type": "string"
+          },
+          "state_version": {
+            "title": "State Version",
+            "type": "integer"
+          },
+          "verdict": {
+            "title": "Verdict",
+            "type": "string"
+          },
+          "wall_ms": {
+            "title": "Wall Ms",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "state_version",
+          "requested_by",
+          "solver_status",
+          "verdict",
+          "objectives",
+          "wall_ms",
+          "created_at"
+        ],
+        "title": "RunSummary",
+        "type": "object"
+      },
       "Shortage": {
         "properties": {
           "available_base": {
@@ -1646,6 +2120,91 @@
           "missing_base"
         ],
         "title": "Shortage",
+        "type": "object"
+      },
+      "ShortfallOut": {
+        "properties": {
+          "display": {
+            "title": "Display",
+            "type": "string"
+          },
+          "id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "missing": {
+            "title": "Missing",
+            "type": "string"
+          },
+          "resource": {
+            "title": "Resource",
+            "type": "string"
+          },
+          "unit": {
+            "title": "Unit",
+            "type": "string"
+          }
+        },
+        "required": [
+          "resource",
+          "id",
+          "label",
+          "missing",
+          "unit",
+          "display"
+        ],
+        "title": "ShortfallOut",
+        "type": "object"
+      },
+      "StageOut": {
+        "properties": {
+          "deterministic_time": {
+            "title": "Deterministic Time",
+            "type": "number"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "objective": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Objective"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "wall_ms": {
+            "title": "Wall Ms",
+            "type": "number"
+          }
+        },
+        "required": [
+          "name",
+          "status",
+          "objective",
+          "wall_ms",
+          "deterministic_time"
+        ],
+        "title": "StageOut",
         "type": "object"
       },
       "StockOut": {
@@ -1983,7 +2542,7 @@
   },
   "info": {
     "title": "CORNUCOPIA API",
-    "version": "0.3.0"
+    "version": "0.4.0"
   },
   "openapi": "3.1.0",
   "paths": {
@@ -2410,6 +2969,170 @@
         "summary": "Summary",
         "tags": [
           "operations"
+        ]
+      }
+    },
+    "/api/v1/optimizer/runs": {
+      "get": {
+        "operationId": "list_runs_api_v1_optimizer_runs_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/RunSummary"
+                  },
+                  "title": "Response List Runs Api V1 Optimizer Runs Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Runs",
+        "tags": [
+          "optimizer"
+        ]
+      },
+      "post": {
+        "operationId": "create_run_api_v1_optimizer_runs_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "x-cornucopia-actor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Cornucopia-Actor"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RunRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Create Run",
+        "tags": [
+          "optimizer"
+        ]
+      }
+    },
+    "/api/v1/optimizer/runs/{run_id}": {
+      "get": {
+        "operationId": "get_run_api_v1_optimizer_runs__run_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Run Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Get Run Api V1 Optimizer Runs  Run Id  Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Run",
+        "tags": [
+          "optimizer"
         ]
       }
     },

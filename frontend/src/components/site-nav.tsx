@@ -6,6 +6,7 @@ const LINKS = [
   { href: "/inventory", label: "Inventory" },
   { href: "/events", label: "Event Center" },
   { href: "/compiler", label: "Compiler" },
+  { href: "/optimizer", label: "Optimizer" },
   { href: "/history", label: "Audit history" },
 ];
 

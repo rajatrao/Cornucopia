@@ -43,6 +43,73 @@ The impact of an event is its origin node plus everything downstream. For a chan
 
 `canonical_json` gives sorted, normalised decimals and excludes `as_of`. `fingerprint` is its SHA-256. `compare_plans` lists changes to commitments, recipes, ingredient and lot allocations, teams, routes and substitutions. Phase 6 binds approvals to this fingerprint.
 
-## Phase 4: CP-SAT optimizer
+## Phase 4: CP-SAT recovery optimizer (`backend/cornucopia/optimizer`)
 
-Planned. See IMPLEMENTATION_PLAN.md.
+The optimizer is independent of LangGraph: `optimizer.service.run(snapshot, config, reference)` is a plain function.
+
+### Decision variables
+
+| Variable | Meaning |
+|---|---|
+| `meals[c]` ∈ 0..requested | meals planned for each active commitment. Fixed at 0 when its meal breaks the commitment's diet, is malformed, or has no usable route. |
+| `route[c,d]` | meals of commitment c carried on route d. Only the original route is allowed when rerouting is disabled. |
+| `need[r,i]` | mg of ingredient i that recipe r needs: exactly ceil(Σ qty_mg·portions·meals ÷ yield), using integer numerator/denominator |
+| `sub_r[k]`, `sub_u[k]`, `sub_z[k]` | per valid substitution option: original replaced (mg), substitute used (= ceil(r·ratio) exactly), rule used |
+
+Substitution options are created only for rules in scope that break no diet of any active commitment using the recipe.
+
+### Hard constraints
+
+- Ingredient use ≤ usable stock, after substitutions.
+- Portions ≤ preparation capacity (staffing-aware).
+- Meals per route ≤ route capacity; only usable routes.
+- Replaced quantity ≤ what the recipe actually needs.
+- Diets are enforced structurally: a conflicting commitment's meals are fixed at 0.
+
+### Lexicographic objectives
+
+Each stage fixes the optimum of the one before it.
+
+| # | Objective | Direction |
+|---|---|---|
+| 1 | commitments fully met ("preserve commitments") | max |
+| 2 | meals served | max |
+| 3 | change vs. reference plan: Σ\|meals − reference\| + substitution rules used | min |
+| 4 | food waste: stock expiring within 72 h left unused (mg) | min |
+| 5 | delivery disruption: meals moved off their route + meals on routes departing after the due time | min |
+| 6 | earlier-due priority (tie-break) | max |
+
+The reference plan is the approved plan from Phase 6. Until then, stage 3 counts only the substitution rules used.
+
+### Exactness and verification
+
+The solver's decisions are rebuilt with exact Decimal arithmetic: allocations are FIFO by expiry, substitute amounts are `ceil3(replaced × ratio)`, and teams are filled in a fixed order. The result is then checked by the independent validator. The run's `verdict` is the only feasibility label:
+
+- `verified_feasible`: every commitment met, validator clean.
+- `verified_partial`: a validated plan that serves fewer meals, with an explanation.
+- `unverified`: the validator found violations. This is never shown as feasible.
+- `failed`: the solver returned no solution.
+
+A loophole found and closed during testing: substitute use is pinned to exactly ceil(r·ratio). Otherwise the waste objective could "use" expiring stock without replacing anything.
+
+### Infeasibility diagnosis
+
+Every serviceable commitment is forced to its full count and each limit gets a slack. Slacks are minimised in order (ingredients, then preparation, then routes), with substitutions and rerouting still available. Each non-zero slack is reported as a shortfall, for example "Rice 80.0 lb (after using every valid substitution)". Commitments that no resource could fix, such as diet conflicts, are listed as blocked.
+
+### Determinism
+
+The solver uses one search worker, `random_seed = 0`, and `max_deterministic_time` per stage, which is machine independent. A wall-clock cap is a safety net only. Tests and the live Sprite both show identical fingerprints and objectives across repeated runs.
+
+### Candidates
+
+Each run also solves `no_substitutions` and `no_rerouting`, and includes the greedy `baseline`. Each candidate gets its own verdict and a deterministic diff against the recommended plan.
+
+### Performance (demonstration dataset, rice cancelled, 40 lb quinoa)
+
+| Where | Measure |
+|---|---|
+| Solver, all 6 stages (Sprite) | ≈ 28 ms, 30 variables, 49 constraints |
+| Full API call incl. diagnosis, 3 alternatives, persistence via the connector (Sprite) | ≈ 1.0 s |
+| Test suite budget | < 10 s for the full run with candidates (actual < 0.1 s) |
+
+Every run is stored append-only in `optimization_runs` and `optimization_results` through the transactional `record_optimization_run` RPC.
