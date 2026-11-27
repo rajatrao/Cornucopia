@@ -4,6 +4,162 @@
  */
 
 export interface paths {
+    "/api/v1/audit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Audit */
+        get: operations["audit_api_v1_audit_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Events */
+        get: operations["list_events_api_v1_events_get"];
+        put?: never;
+        /** Submit Event */
+        post: operations["submit_event_api_v1_events_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/events/{event_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Event */
+        get: operations["get_event_api_v1_events__event_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/inventory/donations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Donations */
+        get: operations["donations_api_v1_inventory_donations_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/inventory/lots": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lots */
+        get: operations["lots_api_v1_inventory_lots_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/inventory/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Summary */
+        get: operations["summary_api_v1_inventory_summary_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organization": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Org */
+        get: operations["get_org_api_v1_organization_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/resources/{kind}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Resources */
+        get: operations["list_resources_api_v1_resources__kind__get"];
+        put?: never;
+        /** Create Resource */
+        post: operations["create_resource_api_v1_resources__kind__post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/resources/{kind}/{row_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete Resource */
+        delete: operations["delete_resource_api_v1_resources__kind___row_id__delete"];
+        options?: never;
+        head?: never;
+        /** Update Resource */
+        patch: operations["update_resource_api_v1_resources__kind___row_id__patch"];
+        trace?: never;
+    };
     "/api/v1/system/probes": {
         parameters: {
             query?: never;
@@ -77,6 +233,49 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** AuditOut */
+        AuditOut: {
+            /** Action */
+            action: string;
+            /** Actor */
+            actor: string;
+            /**
+             * At
+             * Format: date-time
+             */
+            at: string;
+            /** Event Id */
+            event_id?: string | null;
+            /** Id */
+            id: number;
+            /** Record Id */
+            record_id: string;
+            /** Table Name */
+            table_name: string;
+        };
+        /** CommitmentChanged */
+        CommitmentChanged: {
+            /**
+             * Commitment Id
+             * Format: uuid
+             */
+            commitment_id: string;
+            /** Diet Requirements */
+            diet_requirements?: components["schemas"]["Diet"][] | null;
+            /** Due At */
+            due_at?: string | null;
+            /** Meals Count */
+            meals_count?: number | null;
+            /** Reason */
+            reason: string;
+            /** Status */
+            status?: ("cancelled" | "fulfilled") | null;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "COMMITMENT_CHANGED";
+        };
         /** DbHealthOut */
         DbHealthOut: {
             /** Db Schema */
@@ -95,10 +294,218 @@ export interface components {
             /** Transport */
             transport: string;
         };
+        /** DeliveryCancelled */
+        DeliveryCancelled: {
+            /**
+             * Delivery Id
+             * Format: uuid
+             */
+            delivery_id: string;
+            /** Reason */
+            reason: string;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "DELIVERY_CANCELLED";
+        };
+        /** DeliveryDelayed */
+        DeliveryDelayed: {
+            /** Delay Minutes */
+            delay_minutes: number;
+            /**
+             * Delivery Id
+             * Format: uuid
+             */
+            delivery_id: string;
+            /** Reason */
+            reason: string;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "DELIVERY_DELAYED";
+        };
+        /**
+         * Diet
+         * @enum {string}
+         */
+        Diet: "vegetarian" | "vegan" | "gluten_free" | "nut_free" | "dairy_free" | "halal";
+        /** DonationCancelled */
+        DonationCancelled: {
+            /**
+             * Donation Id
+             * Format: uuid
+             */
+            donation_id: string;
+            /** Reason */
+            reason: string;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "DONATION_CANCELLED";
+        };
+        /** DonationCreated */
+        DonationCreated: {
+            /** Description */
+            description: string;
+            /** Donor Id */
+            donor_id?: string | null;
+            /** Expected At */
+            expected_at?: string | null;
+            /** Lots */
+            lots: components["schemas"]["DonationLotIn"][];
+            /** Received */
+            received: boolean;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "DONATION_CREATED";
+        };
+        /** DonationLotIn */
+        DonationLotIn: {
+            /** Expires At */
+            expires_at?: string | null;
+            /**
+             * Ingredient Id
+             * Format: uuid
+             */
+            ingredient_id: string;
+            /** Quantity */
+            quantity: number | string;
+            unit: components["schemas"]["Unit"];
+        };
+        /** DonationOut */
+        DonationOut: {
+            /** Cancel Reason */
+            cancel_reason?: string | null;
+            /** Cancelled At */
+            cancelled_at?: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Description */
+            description: string;
+            /** Donor Id */
+            donor_id?: string | null;
+            /** Expected At */
+            expected_at?: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Received At */
+            received_at?: string | null;
+            /** Source Event Id */
+            source_event_id?: string | null;
+            /** Status */
+            status: string;
+        };
+        /** EventIn */
+        EventIn: {
+            /** Correlation Id */
+            correlation_id?: string | null;
+            /** Event */
+            event: components["schemas"]["DonationCreated"] | components["schemas"]["DonationCancelled"] | components["schemas"]["InventoryAdjusted"] | components["schemas"]["IngredientExpired"] | components["schemas"]["VolunteerUnavailable"] | components["schemas"]["DeliveryDelayed"] | components["schemas"]["DeliveryCancelled"] | components["schemas"]["CommitmentChanged"] | components["schemas"]["PreparationCapacityChanged"];
+            /** Idempotency Key */
+            idempotency_key: string;
+        };
+        /** EventOut */
+        EventOut: {
+            /** Actor */
+            actor: string;
+            /**
+             * Correlation Id
+             * Format: uuid
+             */
+            correlation_id: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Effect */
+            effect: {
+                [key: string]: unknown;
+            };
+            /** Event Type */
+            event_type: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Idempotency Key */
+            idempotency_key: string;
+            /** Payload */
+            payload: {
+                [key: string]: unknown;
+            };
+            /** Processed At */
+            processed_at?: string | null;
+            /** Processing Note */
+            processing_note?: string | null;
+            /** Processing Status */
+            processing_status: string;
+            /** State Version */
+            state_version: number;
+        };
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
+        };
+        /** IngestOut */
+        IngestOut: {
+            /** Duplicate */
+            duplicate: boolean;
+            event: components["schemas"]["EventOut"];
+        };
+        /** IngredientExpired */
+        IngredientExpired: {
+            /**
+             * Lot Id
+             * Format: uuid
+             */
+            lot_id: string;
+            /** Quantity */
+            quantity?: number | string | null;
+            /** Reason */
+            reason: string;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "INGREDIENT_EXPIRED";
+            unit?: components["schemas"]["Unit"] | null;
+        };
+        /** InventoryAdjusted */
+        InventoryAdjusted: {
+            /**
+             * Direction
+             * @enum {string}
+             */
+            direction: "add" | "remove";
+            /**
+             * Lot Id
+             * Format: uuid
+             */
+            lot_id: string;
+            /** Quantity */
+            quantity: number | string;
+            /** Reason */
+            reason: string;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "INVENTORY_ADJUSTED";
+            unit: components["schemas"]["Unit"];
         };
         /** Liveness */
         Liveness: {
@@ -124,6 +531,73 @@ export interface components {
             /** Version */
             version: string;
         };
+        /** LotOut */
+        LotOut: {
+            base_unit: components["schemas"]["Unit"];
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Donation Id */
+            donation_id?: string | null;
+            /** Expires At */
+            expires_at?: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Ingredient Id
+             * Format: uuid
+             */
+            ingredient_id: string;
+            /** Initial Quantity Base */
+            initial_quantity_base: string;
+            /** Quantity Base */
+            quantity_base: string;
+            /** Reported Quantity */
+            reported_quantity: string;
+            reported_unit: components["schemas"]["Unit"];
+            /** Status */
+            status: string;
+        };
+        /** OrgOut */
+        OrgOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+            /** Slug */
+            slug: string;
+            /** State Version */
+            state_version: number;
+        };
+        /** PreparationCapacityChanged */
+        PreparationCapacityChanged: {
+            /** Active */
+            active?: boolean | null;
+            /** Available Hours */
+            available_hours?: number | string | null;
+            /** Capacity Portions Per Hour */
+            capacity_portions_per_hour?: number | string | null;
+            /** Reason */
+            reason: string;
+            /**
+             * Team Id
+             * Format: uuid
+             */
+            team_id: string;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "PREPARATION_CAPACITY_CHANGED";
+        };
         /** ProbeCreate */
         ProbeCreate: {
             /** Note */
@@ -146,6 +620,36 @@ export interface components {
             /** Source */
             source: string;
         };
+        /** StockOut */
+        StockOut: {
+            /** Available Base */
+            available_base: string;
+            /** Available Display */
+            available_display: string;
+            base_unit: components["schemas"]["Unit"];
+            /** Earliest Expiry */
+            earliest_expiry: string | null;
+            /** Expiring Within 48H Base */
+            expiring_within_48h_base: string;
+            /**
+             * Ingredient Id
+             * Format: uuid
+             */
+            ingredient_id: string;
+            /** Ingredient Name */
+            ingredient_name: string;
+            /** Lots Available */
+            lots_available: number;
+            /** Lots Unusable */
+            lots_unusable: number;
+            /** Pledged Base */
+            pledged_base: string;
+        };
+        /**
+         * Unit
+         * @enum {string}
+         */
+        Unit: "g" | "kg" | "oz" | "lb" | "ml" | "l" | "tsp" | "tbsp" | "cup" | "fl_oz" | "qt" | "gal" | "each" | "portion";
         /** ValidationError */
         ValidationError: {
             /** Context */
@@ -159,6 +663,21 @@ export interface components {
             /** Error Type */
             type: string;
         };
+        /** VolunteerUnavailable */
+        VolunteerUnavailable: {
+            /** Reason */
+            reason: string;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "VOLUNTEER_UNAVAILABLE";
+            /**
+             * Volunteer Id
+             * Format: uuid
+             */
+            volunteer_id: string;
+        };
     };
     responses: never;
     parameters: never;
@@ -168,6 +687,350 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    audit_api_v1_audit_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_events_api_v1_events_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EventOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    submit_event_api_v1_events_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-cornucopia-actor"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EventIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IngestOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_event_api_v1_events__event_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                event_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EventOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    donations_api_v1_inventory_donations_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DonationOut"][];
+                };
+            };
+        };
+    };
+    lots_api_v1_inventory_lots_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LotOut"][];
+                };
+            };
+        };
+    };
+    summary_api_v1_inventory_summary_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StockOut"][];
+                };
+            };
+        };
+    };
+    get_org_api_v1_organization_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrgOut"];
+                };
+            };
+        };
+    };
+    list_resources_api_v1_resources__kind__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                kind: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    }[];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_resource_api_v1_resources__kind__post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-cornucopia-actor"?: string | null;
+            };
+            path: {
+                kind: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_resource_api_v1_resources__kind___row_id__delete: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-cornucopia-actor"?: string | null;
+            };
+            path: {
+                kind: string;
+                row_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_resource_api_v1_resources__kind___row_id__patch: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-cornucopia-actor"?: string | null;
+            };
+            path: {
+                kind: string;
+                row_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_probes_api_v1_system_probes_get: {
         parameters: {
             query?: never;

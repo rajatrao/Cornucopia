@@ -12,11 +12,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from cornucopia import __version__
+from cornucopia.api.operations import build_router
 from cornucopia.api.schemas import DbHealthOut, Liveness, ProbeCreate, ProbeOut
 from cornucopia.config import Settings, TransportMode, get_settings
 from cornucopia.persistence.client import SupabaseClient, SupabaseError
 from cornucopia.persistence.factory import build_client
 from cornucopia.persistence.repositories import SupabaseSystemRepository, SystemRepository
+from cornucopia.persistence.repositories.operations import SupabaseOperationsRepository
 
 log = logging.getLogger("cornucopia.api")
 
@@ -36,6 +38,10 @@ def create_app(settings: Settings | None = None, client: SupabaseClient | None =
         db = client or build_client(settings)
         app.state.db = db
         app.state.system_repo = SupabaseSystemRepository(db)
+        app.state.ops_repo = SupabaseOperationsRepository(db)
+        app.state.organization = app.state.ops_repo.ensure_organization(
+            settings.org_slug, settings.org_name
+        )
         log.info("startup transport=%s runtime=%s", settings.transport, _runtime())
         try:
             yield
@@ -48,8 +54,8 @@ def create_app(settings: Settings | None = None, client: SupabaseClient | None =
         app.add_middleware(
             CORSMiddleware,
             allow_origins=settings.cors_origins,
-            allow_methods=["GET", "POST"],
-            allow_headers=["Authorization", "Content-Type"],
+            allow_methods=["GET", "POST", "PATCH", "DELETE"],
+            allow_headers=["Authorization", "Content-Type", "X-Cornucopia-Actor"],
         )
 
     def system_repo(request: Request) -> SystemRepository:
@@ -137,6 +143,7 @@ def create_app(settings: Settings | None = None, client: SupabaseClient | None =
     def list_probes(repo: Repo) -> list[ProbeOut]:
         return [ProbeOut.model_validate(p.model_dump()) for p in repo.recent_probes()]
 
+    app.include_router(build_router(), dependencies=[Auth])
     return app
 
 

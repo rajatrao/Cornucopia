@@ -41,3 +41,8 @@ CORNUCOPIA uses schema `cornucopia`. PostgREST only serves schemas listed under 
 1. Supabase Settings → API Keys: create a new secret key, then revoke the old one.
 2. Update the connector's credential in the Fly.io dashboard.
 3. Update the local gitignored `.env` if you use local direct mode.
+
+## Verified behaviours (2026-11-27)
+
+- Custom request headers (for example `X-Cornucopia-Actor`) are **not** forwarded to PostgREST by the gateway. Anything the database must know about the caller is therefore passed as an RPC argument.
+- PostgREST error bodies (`code`, `message`, `details`) pass through unchanged, including custom SQLSTATEs raised by our functions.

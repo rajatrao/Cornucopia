@@ -42,3 +42,4 @@ Verify: restart drills (`sprite-env services restart`, kill -9, forced cold), no
 ## Phase 9: Demonstration
 Build: demo seed (500 commitments, 180 lb rice, 120 lb potatoes, 100 lb carrots, 12 volunteers, 3 routes), rice-cancellation scenario, insufficient-resources escalation scenario, `DEMO_SCRIPT.md`, all required docs.
 Verify: scripted run end to end from the UI; outcome computed by the optimizer, not hardcoded.
+Demo video: 3 to 5 minute recording with a male-voice narration (scripted Playwright screen capture of the real deployment plus local/free TTS), saved to `/Users/rajat/Downloads/hackathon/videos`. Raw recording assets stay out of git.

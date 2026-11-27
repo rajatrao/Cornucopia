@@ -11,6 +11,9 @@
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 SPRITE="${SPRITE:-cornucopia}"
+# Which organization this deployment operates (MVP: one per deployment).
+ORG_SLUG="${CORNUCOPIA_ORG_SLUG:-cornucopia-dev}"
+ORG_NAME="${CORNUCOPIA_ORG_NAME:-CORNUCOPIA development}"
 : "${SUPABASE_GATEWAY_URL:?set SUPABASE_GATEWAY_URL (see CONNECTOR_SETUP.md)}"
 REL="$(date -u +%Y%m%dT%H%M%SZ)"
 TARBALL="$(mktemp -d)/cornucopia-$REL.tgz"
@@ -42,11 +45,13 @@ sprite exec -s "$SPRITE" --no-stdin -- bash -seuo pipefail -c "
     echo \"CORNUCOPIA_API_TOKEN=\$(openssl rand -hex 32)\" >> \$ENVF
     echo 'generated new API token'
   fi
-  sed -i '/^SUPABASE_GATEWAY_URL=/d;/^CORNUCOPIA_TRANSPORT=/d;/^CORNUCOPIA_ENV=/d' \$ENVF
+  sed -i '/^SUPABASE_GATEWAY_URL=/d;/^CORNUCOPIA_TRANSPORT=/d;/^CORNUCOPIA_ENV=/d;/^CORNUCOPIA_ORG_/d' \$ENVF
   {
     echo 'CORNUCOPIA_ENV=production'
     echo 'CORNUCOPIA_TRANSPORT=gateway'
     echo 'SUPABASE_GATEWAY_URL=$SUPABASE_GATEWAY_URL'
+    echo 'CORNUCOPIA_ORG_SLUG=$ORG_SLUG'
+    echo 'CORNUCOPIA_ORG_NAME=$ORG_NAME'
   } >> \$ENVF
 
   sprite-env services delete cornucopia-api >/dev/null 2>&1 || true

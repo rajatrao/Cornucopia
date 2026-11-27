@@ -20,6 +20,12 @@ Migration reproducibility (fresh databases, identical `pg_dump -s`):
 PGHOST=localhost PGPORT=54329 PGUSER=postgres scripts/verify_migrations_local.sh
 ```
 
+Database-level tests apply every migration to a fresh scratch database and run as `service_role`. They cover idempotency, concurrent duplicates, append-only enforcement, audit actor and org boundaries:
+
+```bash
+cd backend && CORNUCOPIA_TEST_PG_ADMIN_URL=postgresql://postgres@localhost:54329/postgres uv run pytest tests/db
+```
+
 ## Live integration (real Sprite, real connector, real Supabase)
 
 ```bash
@@ -52,3 +58,14 @@ Runs on a desktop and a mobile (Pixel 7) profile.
 | live: insert + read probe via Sprite API → connector | ok (`source=gateway`) |
 | Playwright (desktop + mobile) | 8 passed |
 | bundle secret scan (`.next/static`) | 0 hits for token, `sb_secret`, `supabase.co`, `api.sprites.dev` |
+
+## Phase 2 results (2026-11-27)
+
+| Check | Result |
+|---|---|
+| pytest (units, events, inventory, API, DB-level on Postgres 18) | 54 passed |
+| ruff, ruff format, mypy --strict | clean |
+| alembic check / migration reproducibility | no drift / identical schema from 3 migrations |
+| `supabase db push --remote` | 2 migrations applied |
+| live on the Sprite via connector | create ingredient, donation 180 lb → 180.0 lb, duplicate returns same event, cancel → 0.0 lb, second cancel 409, audit actor recorded |
+| Playwright (desktop + mobile), real stack | 16 passed (Phase 1 + Phase 2 specs) |
