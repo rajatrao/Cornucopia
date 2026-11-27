@@ -7,6 +7,7 @@ const LINKS = [
   { href: "/events", label: "Event Center" },
   { href: "/compiler", label: "Compiler" },
   { href: "/optimizer", label: "Optimizer" },
+  { href: "/executions", label: "Agent" },
   { href: "/history", label: "Audit history" },
 ];
 

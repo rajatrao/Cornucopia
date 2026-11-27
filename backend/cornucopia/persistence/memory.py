@@ -30,6 +30,12 @@ class InMemorySupabaseClient(SupabaseClient):
         self.register_rpc("ingest_event", _ingest_event)
         self.register_rpc("get_operational_snapshot", _snapshot)
         self.register_rpc("record_optimization_run", _record_run)
+        self.register_rpc("put_checkpoint", _put_checkpoint)
+        self.register_rpc("put_checkpoint_writes", _put_checkpoint_writes)
+        self.register_rpc("claim_next_execution", _claim)
+        self.register_rpc("heartbeat_execution", _heartbeat)
+        self.register_rpc("record_execution_step", _record_step)
+        self.register_rpc("finish_execution", _finish)
 
     def register_rpc(self, name: str, fn: RpcFn) -> None:
         self._rpcs[name] = fn
@@ -317,6 +323,11 @@ def _snapshot(db: InMemorySupabaseClient, args: Mapping[str, Any]) -> JSON:
 
 def _record_run(db: InMemorySupabaseClient, args: Mapping[str, Any]) -> JSON:
     run = dict(args["p_run"])
+    key = run.get("idempotency_key")
+    if key:
+        for r in db.tables.get("optimization_runs", []):
+            if r.get("idempotency_key") == key:
+                return {"run_id": r["id"], "duplicate": True}
     row = db.insert(
         "optimization_runs",
         [
@@ -330,3 +341,177 @@ def _record_run(db: InMemorySupabaseClient, args: Mapping[str, Any]) -> JSON:
     )[0]
     db.insert("optimization_results", [{"run_id": row["id"], **r} for r in args["p_results"]])
     return {"run_id": row["id"]}
+
+
+# --- Phase 5 test doubles (authoritative semantics: db/sql/0006_agent.sql,
+# --- tested against Postgres in tests/db/test_agent_sql.py)
+
+
+def _put_checkpoint(db: InMemorySupabaseClient, args: Mapping[str, Any]) -> JSON:
+    row = dict(args["p_row"])
+    rows = db.tables.setdefault("agent_checkpoints", [])
+    key = (row["thread_id"], row["checkpoint_ns"], row["checkpoint_id"])
+    if not any((r["thread_id"], r["checkpoint_ns"], r["checkpoint_id"]) == key for r in rows):
+        rows.append({**row, "created_at": _now()})
+    return True
+
+
+def _put_checkpoint_writes(db: InMemorySupabaseClient, args: Mapping[str, Any]) -> JSON:
+    rows = db.tables.setdefault("agent_checkpoint_writes", [])
+    n = 0
+    for w in args["p_rows"]:
+        key = (w["thread_id"], w["checkpoint_ns"], w["checkpoint_id"], w["task_id"], w["idx"])
+        existing = [
+            r
+            for r in rows
+            if (r["thread_id"], r["checkpoint_ns"], r["checkpoint_id"], r["task_id"], r["idx"])
+            == key
+        ]
+        if existing and w["idx"] >= 0:
+            continue
+        for e in existing:
+            rows.remove(e)
+        rows.append(dict(w))
+        n += 1
+    return n
+
+
+def _lease_ok(ex: dict[str, Any], worker: str, attempt: int) -> bool:
+    return bool(
+        ex["lease_owner"] == worker
+        and ex["attempt"] == attempt
+        and ex["status"] == "running"
+        and ex["lease_expires_at"] >= datetime.now(UTC)
+    )
+
+
+def _step(
+    db: InMemorySupabaseClient,
+    ex: dict[str, Any],
+    node: str,
+    status: str,
+    detail: Mapping[str, Any],
+) -> None:
+    steps = db.tables.setdefault("agent_execution_steps", [])
+    steps.append(
+        {
+            "id": len(steps) + 1,
+            "execution_id": ex["id"],
+            "attempt": ex["attempt"],
+            "node": node,
+            "status": status,
+            "detail": dict(detail),
+            "at": _now(),
+        }
+    )
+
+
+def _claim(db: InMemorySupabaseClient, args: Mapping[str, Any]) -> JSON:
+    from datetime import timedelta
+
+    org, worker = args["p_organization_id"], args["p_worker"]
+    lease = timedelta(seconds=int(args["p_lease_seconds"]))
+    now = datetime.now(UTC)
+    execs = db.tables.setdefault("agent_executions", [])
+    events = db.tables.setdefault("operational_events", [])
+    for ex in sorted(execs, key=lambda e: e["created_at"]):
+        if (
+            ex["organization_id"] == org
+            and ex["status"] == "running"
+            and ex["lease_expires_at"] < now
+        ):
+            ex.update(
+                lease_owner=worker,
+                attempt=ex["attempt"] + 1,
+                lease_expires_at=now + lease,
+                heartbeat_at=now,
+            )
+            _step(db, ex, ex.get("current_node") or "supervisor", "resumed", {"worker": worker})
+            ev = next(e for e in events if e["id"] == ex["event_id"])
+            return {"resumed": True, "execution": _jsonable(ex), "event": copy.deepcopy(ev)}
+    for ev in sorted(events, key=lambda e: (e["created_at"], e["id"])):
+        if ev["organization_id"] != org or ev["processing_status"] != "pending":
+            continue
+        if any(x["event_id"] == ev["id"] for x in execs):
+            ev["processing_status"] = "processed"
+            return None
+        ex = {
+            "id": str(uuid.uuid4()),
+            "organization_id": org,
+            "event_id": ev["id"],
+            "thread_id": f"event:{ev['id']}",
+            "correlation_id": ev["correlation_id"],
+            "status": "running",
+            "current_node": None,
+            "last_completed_node": None,
+            "retry_count": 0,
+            "attempt": 1,
+            "lease_owner": worker,
+            "lease_expires_at": now + lease,
+            "heartbeat_at": now,
+            "result": None,
+            "error": None,
+            "created_at": _now(),
+            "finished_at": None,
+        }
+        execs.append(ex)
+        ev["processing_status"] = "processing"
+        _step(db, ex, "supervisor", "claimed", {"worker": worker})
+        return {"resumed": False, "execution": _jsonable(ex), "event": copy.deepcopy(ev)}
+    return None
+
+
+def _jsonable(ex: dict[str, Any]) -> dict[str, Any]:
+    return {k: (v.isoformat() if isinstance(v, datetime) else v) for k, v in ex.items()}
+
+
+def _find_exec(db: InMemorySupabaseClient, exec_id: str) -> dict[str, Any]:
+    return next(x for x in db.tables.get("agent_executions", []) if x["id"] == exec_id)
+
+
+def _heartbeat(db: InMemorySupabaseClient, args: Mapping[str, Any]) -> JSON:
+    from datetime import timedelta
+
+    ex = _find_exec(db, args["p_execution_id"])
+    if (
+        ex["lease_owner"] != args["p_worker"]
+        or ex["attempt"] != args["p_attempt"]
+        or ex["status"] != "running"
+    ):
+        return False
+    ex["lease_expires_at"] = datetime.now(UTC) + timedelta(seconds=int(args["p_lease_seconds"]))
+    ex["heartbeat_at"] = datetime.now(UTC)
+    return True
+
+
+def _record_step(db: InMemorySupabaseClient, args: Mapping[str, Any]) -> JSON:
+    ex = _find_exec(db, args["p_execution_id"])
+    if not _lease_ok(ex, args["p_worker"], args["p_attempt"]):
+        return False
+    _step(db, ex, args["p_node"], args["p_status"], args.get("p_detail") or {})
+    ex["current_node"] = args["p_node"]
+    if args["p_status"] == "completed":
+        ex["last_completed_node"] = args["p_node"]
+    if args["p_status"] == "retry":
+        ex["retry_count"] += 1
+    return True
+
+
+def _finish(db: InMemorySupabaseClient, args: Mapping[str, Any]) -> JSON:
+    ex = _find_exec(db, args["p_execution_id"])
+    if not _lease_ok(ex, args["p_worker"], args["p_attempt"]):
+        return False
+    status = args["p_status"]
+    ex.update(
+        status=status,
+        result=args.get("p_result"),
+        error=args.get("p_error"),
+        finished_at=_now(),
+        lease_owner=None,
+    )
+    for ev in db.tables.get("operational_events", []):
+        if ev["id"] == ex["event_id"]:
+            ev["processing_status"] = {"escalated": "escalated", "failed": "failed"}.get(
+                status, "processed"
+            )
+    return True

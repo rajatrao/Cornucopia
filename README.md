@@ -17,8 +17,9 @@ CORNUCOPIA is an autonomous resource compiler built for Fly.io Hacksgiving 2026.
 | 1 | Foundation, Supabase connector, migrations, frontend link | Done |
 | 2 | Domain model, units, operational event journal, resource UI | Done |
 | 3 | Deterministic resource compiler, dependency graph, compiler UI | Done |
-| 4 | OR-Tools CP-SAT recovery optimizer, diagnosis, optimizer UI | Done, awaiting approval (branch `phase-4-optimizer`) |
-| 5 to 9 | Agent, approvals, command center, resilience, demo | Planned (`IMPLEMENTATION_PLAN.md`) |
+| 4 | OR-Tools CP-SAT recovery optimizer, diagnosis, optimizer UI | Done |
+| 5 | LangGraph agent on the Sprite, Supabase checkpointer, leases, execution history | Done, awaiting approval (branch `phase-5-agent`) |
+| 6 to 9 | Approvals, command center, resilience, demo | Planned (`IMPLEMENTATION_PLAN.md`) |
 
 ## Repository map
 
@@ -56,4 +57,4 @@ cd frontend && npx next start -p 3100
 
 ## Documentation
 
-`ARCHITECTURE.md`, `IMPLEMENTATION_PLAN.md`, `DEPLOYMENT.md`, `CONNECTOR_SETUP.md`, `DATABASE_SCHEMA.md`, `SECURITY.md`, `TESTING.md`, `CHANGELOG.md`, `JOURNAL.md`. The agent, optimizer and demo documents arrive with their phases.
+`ARCHITECTURE.md`, `AGENT_WORKFLOW.md`, `OPTIMIZATION_ENGINE.md`, `IMPLEMENTATION_PLAN.md`, `DEPLOYMENT.md`, `CONNECTOR_SETUP.md`, `DATABASE_SCHEMA.md`, `SECURITY.md`, `TESTING.md`, `CHANGELOG.md`, `JOURNAL.md`. The agent, optimizer and demo documents arrive with their phases.

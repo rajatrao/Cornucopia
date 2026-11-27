@@ -164,3 +164,38 @@ Recommendation: proceed to Phase 4.
 - [x] Performance is measured on the demonstration dataset (OPTIMIZATION_ENGINE.md)
 
 Recommendation: proceed to Phase 5.
+
+## 2026-11-27 Phase 5: LangGraph autonomous agent (branch `phase-5-agent`)
+
+### Files created
+- Backend: `agent/{checkpointer,tools,graph,supervisor}.py`, `worker.py`, `api/agent.py`, `tests/test_agent.py`, `tests/db/test_agent_sql.py`
+- DB: `db/sql/0006_agent.sql`, `db/alembic/versions/0006_agent.py`, `supabase/migrations/20261127040000_agent.sql`
+- Frontend: `app/executions/page.tsx`, `components/executions-view.tsx`, `e2e/phase5.spec.ts`
+- `AGENT_WORKFLOW.md`, `docs/img/phase5-agent.png`
+
+### Files modified
+`persistence/{models,memory}.py`, repositories, `api/app.py`, `pyproject.toml` (langgraph), `scripts/deploy_sprite.sh` (worker service), BFF whitelist, nav, `e2e/phase4.spec.ts` (data-independent), docs.
+
+### Architecture decisions
+- **Custom checkpointer.** LangGraph's Postgres saver needs SQL; the connector is REST-only. `SupabaseCheckpointSaver` stores each checkpoint as one serde blob through idempotent RPCs.
+- **Leases with fencing tokens.** `attempt` increments on every claim, and all writes are refused unless `(worker, attempt)` still holds the lease.
+- **Facts applied once.** Events are applied at ingest. The agent's `update_operational_state` only verifies, so re-running it is harmless.
+- **Idempotent side effects.** Optimization runs are keyed by `execution:strategy:retry`.
+- **Impact scoped to the event.** Pre-existing shortfalls are not blamed on unrelated events. This was found in the live backlog run and fixed.
+- **Separate service.** The agent is its own Sprite service, uses the Tasks API to stay awake while busy, and lets the Sprite pause when idle.
+
+### Known limitations
+- Each event is handled against the *current* operational state, so a backlog of old events is reconciled against today's reality.
+- Several proposals can be awaiting approval at once (one per event). Phase 6 marks superseded ones STALE through state-version and fingerprint binding.
+- `commit_approved_plan` raises until the Phase 6 approval engine exists.
+- The gateway adds roughly 0.3 s per round trip, so an execution takes about 8 to 18 s with sync checkpointing.
+
+### Acceptance checklist
+- [x] Agent processes events (live: 48 + new events, autonomous, independent of the UI)
+- [x] Agent generates recovery proposals (verified 500/500 proposal awaiting approval)
+- [x] Checkpoints survive process restart (kill -9 drill on the Sprite; crash test)
+- [x] Duplicate execution does not duplicate operational changes (unique execution per event, fenced writes, idempotent runs; tests)
+- [x] Infeasible cases escalate (partial plans escalate with diagnosis; invalid events escalate)
+- [x] Execution history is visible in the UI (Agent page timeline; Playwright)
+
+Recommendation: proceed to Phase 6.

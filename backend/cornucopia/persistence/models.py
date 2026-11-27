@@ -501,6 +501,8 @@ class OptimizationRun(Base):
     model_stats: Mapped[dict[str, object]] = mapped_column(JSONB, nullable=False)
     diagnosis: Mapped[dict[str, object]] = mapped_column(JSONB, nullable=False)
     wall_ms: Mapped[Decimal] = mapped_column(Numeric(12, 1), nullable=False)
+    # set by the agent (execution + node) so a resumed node never records twice
+    idempotency_key: Mapped[str | None] = mapped_column(String(200), unique=True)
     created_at: Mapped[datetime] = _created_at()
     __table_args__ = (
         CheckConstraint(
@@ -534,3 +536,98 @@ class OptimizationResult(Base):
             postgresql_where=text("recommended"),
         ),
     )
+
+
+# --------------------------------------------------------------------------
+# Phase 5: durable agent executions and LangGraph checkpoints
+# --------------------------------------------------------------------------
+
+
+class AgentExecution(Base):
+    """One agent execution per operational event (unique), leased to a worker."""
+
+    __tablename__ = "agent_executions"
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    organization_id: Mapped[uuid.UUID] = _org_fk()
+    event_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey(f"{SCHEMA}.operational_events.id"),
+        nullable=False,
+        unique=True,
+    )
+    thread_id: Mapped[str] = mapped_column(String(120), nullable=False, unique=True)
+    correlation_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
+    status: Mapped[str] = mapped_column(String(20), nullable=False)
+    current_node: Mapped[str | None] = mapped_column(String(60))
+    last_completed_node: Mapped[str | None] = mapped_column(String(60))
+    retry_count: Mapped[int] = mapped_column(Integer, nullable=False, server_default="0")
+    attempt: Mapped[int] = mapped_column(Integer, nullable=False, server_default="1")
+    lease_owner: Mapped[str | None] = mapped_column(String(120))
+    lease_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    heartbeat_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    result: Mapped[dict[str, object] | None] = mapped_column(JSONB)
+    error: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[datetime] = _created_at()
+    updated_at: Mapped[datetime] = _updated_at()
+    finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    __table_args__ = (
+        CheckConstraint(
+            "status in ('running','awaiting_approval','completed','escalated','failed')",
+            name="status",
+        ),
+        CheckConstraint("attempt >= 1 and retry_count >= 0", name="counters"),
+        Index("ix_agent_executions_status_lease", "status", "lease_expires_at"),
+    )
+
+
+class AgentExecutionStep(Base):
+    """Append-only node-level history of an execution (visible in the UI)."""
+
+    __tablename__ = "agent_execution_steps"
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    execution_id: Mapped[uuid.UUID] = _fk("agent_executions")
+    attempt: Mapped[int] = mapped_column(Integer, nullable=False)
+    node: Mapped[str] = mapped_column(String(60), nullable=False)
+    status: Mapped[str] = mapped_column(String(16), nullable=False)
+    detail: Mapped[dict[str, object]] = mapped_column(JSONB, nullable=False)
+    at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+    __table_args__ = (
+        CheckConstraint(
+            "status in ('claimed','resumed','started','completed','retry','failed','interrupted')",
+            name="status",
+        ),
+    )
+
+
+class AgentCheckpoint(Base):
+    """LangGraph checkpoint, serialised by the graph's serde (immutable)."""
+
+    __tablename__ = "agent_checkpoints"
+    thread_id: Mapped[str] = mapped_column(String(120), primary_key=True)
+    checkpoint_ns: Mapped[str] = mapped_column(String(200), primary_key=True)
+    checkpoint_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    organization_id: Mapped[uuid.UUID] = _org_fk()
+    parent_checkpoint_id: Mapped[str | None] = mapped_column(String(64))
+    checkpoint_type: Mapped[str] = mapped_column(String(32), nullable=False)
+    checkpoint: Mapped[str] = mapped_column(Text, nullable=False)  # base64
+    metadata_type: Mapped[str] = mapped_column(String(32), nullable=False)
+    checkpoint_metadata: Mapped[str] = mapped_column("metadata", Text, nullable=False)
+    summary: Mapped[dict[str, object]] = mapped_column(JSONB, nullable=False)
+    created_at: Mapped[datetime] = _created_at()
+
+
+class AgentCheckpointWrite(Base):
+    __tablename__ = "agent_checkpoint_writes"
+    thread_id: Mapped[str] = mapped_column(String(120), primary_key=True)
+    checkpoint_ns: Mapped[str] = mapped_column(String(200), primary_key=True)
+    checkpoint_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    task_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    idx: Mapped[int] = mapped_column(Integer, primary_key=True)
+    organization_id: Mapped[uuid.UUID] = _org_fk()
+    channel: Mapped[str] = mapped_column(String(120), nullable=False)
+    value_type: Mapped[str] = mapped_column(String(32), nullable=False)
+    value: Mapped[str] = mapped_column(Text, nullable=False)  # base64
+    task_path: Mapped[str] = mapped_column(Text, nullable=False, server_default="")
+    created_at: Mapped[datetime] = _created_at()
