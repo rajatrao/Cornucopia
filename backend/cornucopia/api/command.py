@@ -15,7 +15,9 @@ from pydantic import BaseModel, ConfigDict
 from cornucopia.api.compiler import _snapshot, labels
 from cornucopia.api.operations import Org, Repo
 from cornucopia.compiler.calculators import availability, full_demand
+from cornucopia.compiler.plan import Plan
 from cornucopia.compiler.planner import compile_baseline
+from cornucopia.compiler.validator import validate_plan
 from cornucopia.depgraph.graph import build_graph, event_origins, impact
 from cornucopia.simulation.scenarios import SCENARIOS, simulate
 
@@ -78,6 +80,19 @@ def build_router() -> APIRouter:
         committed = (
             repo.get("plan_versions", org.id, UUID(str(committed_id))) if committed_id else None
         )
+        # While the committed plan still holds against the current state (the
+        # validator re-checks every quantity, diet and capacity), operations
+        # run on it; otherwise fall back to what is feasible without recovery.
+        operating: Plan | None = None
+        issues: list[str] = []
+        if committed:
+            plan = Plan.model_validate(committed["plan"]).model_copy(
+                update={"state_version": snap.state_version}
+            )
+            rep = validate_plan(snap, plan)
+            operating = plan if rep.valid else None
+            issues = rep.violations[:3]
+        current = operating or base
         execs = repo.list("agent_executions", org.id, order="created_at.desc", limit=50)
         approvals = repo.list(
             "approval_requests",
@@ -92,18 +107,21 @@ def build_router() -> APIRouter:
             "organization": org.model_dump(mode="json"),
             "state_version": snap.state_version,
             "meals_committed": base.metrics.meals_requested,
-            "meals_feasible_now": base.metrics.meals_planned,
+            "meals_feasible_now": current.metrics.meals_planned,
+            "feasible_basis": "committed_plan" if operating else "baseline",
             "committed_plan": (
                 {
                     "version_number": committed["version_number"],
                     "meals_planned": committed["plan"]["metrics"]["meals_planned"],
                     "committed_at": committed.get("committed_at"),
                     "fingerprint": committed["fingerprint"],
+                    "valid": operating is not None,
+                    "issues": issues,
                 }
                 if committed
                 else None
             ),
-            "commitments": [c.model_dump(mode="json") for c in base.commitments],
+            "commitments": [c.model_dump(mode="json") for c in current.commitments],
             "inventory": inventory,
             "shortages": [
                 {
@@ -112,7 +130,9 @@ def build_router() -> APIRouter:
                     "missing_base": str(s.missing_base),
                     "base_unit": snap.ingredient[s.ingredient_id].base_unit.value,
                 }
-                for s in base.shortages
+                # a committed plan that meets everything covers its shortages
+                # (e.g. through substitutions), so nothing is short
+                for s in ([] if operating and operating.fully_feasible else current.shortages)
             ],
             "agent": {
                 **_agent_status(repo, org.id),

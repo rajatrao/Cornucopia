@@ -11,7 +11,8 @@ interface CC {
   state_version: number;
   meals_committed: number;
   meals_feasible_now: number;
-  committed_plan: { version_number: number; meals_planned: number; committed_at: string | null; fingerprint: string } | null;
+  feasible_basis: "committed_plan" | "baseline";
+  committed_plan: { version_number: number; meals_planned: number; committed_at: string | null; fingerprint: string; valid: boolean; issues: string[] } | null;
   commitments: { commitment_id: string; recipient: string; requested: number; planned: number; status: string; limited_by: string[] }[];
   inventory: { ingredient_id: string; name: string; base_unit: string; required_base: string; available_base: string; coverage: number | null }[];
   shortages: { name: string; missing_base: string; base_unit: string }[];
@@ -76,8 +77,8 @@ export function CommandCenter() {
 
       <dl aria-label="Operation summary" className="grid grid-cols-2 gap-3 lg:grid-cols-5">
         <Tile label="Meals committed" value={String(cc.meals_committed)} />
-        <Tile label="Feasible right now" value={String(cc.meals_feasible_now)} tone={feasibleTone} sub="without any recovery action" />
-        <Tile label="Committed plan" value={cc.committed_plan ? `${cc.committed_plan.meals_planned}` : "—"} sub={cc.committed_plan ? `plan v${cc.committed_plan.version_number}` : "no plan committed yet"} />
+        <Tile label="Feasible right now" value={String(cc.meals_feasible_now)} tone={feasibleTone} sub={cc.feasible_basis === "committed_plan" ? `with committed plan v${cc.committed_plan?.version_number}` : "without any recovery action"} />
+        <Tile label="Committed plan" value={cc.committed_plan ? `${cc.committed_plan.meals_planned}` : "—"} sub={cc.committed_plan ? (cc.committed_plan.valid ? `plan v${cc.committed_plan.version_number} holds` : `plan v${cc.committed_plan.version_number} no longer holds`) : "no plan committed yet"} />
         <Tile label="Pending approvals" value={String(cc.pending_approvals.length)} tone={cc.pending_approvals.length ? "warn" : undefined} />
         <Tile label="Agent" value={cc.agent.live_workers ? "online" : "idle"} tone={cc.agent.live_workers ? "good" : "warn"} sub={`${cc.agent.running.length} running · last heartbeat ${cc.agent.last_seen_at ? fmtTime(cc.agent.last_seen_at) : "—"}`} />
       </dl>

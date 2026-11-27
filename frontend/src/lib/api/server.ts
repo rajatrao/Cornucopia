@@ -72,16 +72,25 @@ export async function forward(method: string, path: string, body?: string, withS
     const session = (await cookies()).get(SESSION_COOKIE)?.value;
     if (session) headers.set("X-Cornucopia-Session", session);
   }
-  try {
-    return await fetch(`${baseUrl}${path}`, {
-      method,
-      headers,
-      body,
-      cache: "no-store",
-      signal: AbortSignal.timeout(30_000),
-    });
-  } catch {
-    return new Response(JSON.stringify({ error: "backend unreachable" }), { status: 502 });
+  // A pooled keep-alive connection to the Sprite can be closed by its proxy
+  // while idle; the next request on it fails before it is sent. Retry once on
+  // such a connection error (never on a timeout, which may have been
+  // delivered). Writes are safe to resend: events carry idempotency keys and
+  // the database refuses a second decision on the same approval.
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await fetch(`${baseUrl}${path}`, {
+        method,
+        headers,
+        body,
+        cache: "no-store",
+        signal: AbortSignal.timeout(30_000),
+      });
+    } catch (err) {
+      const timedOut = err instanceof Error && (err.name === "TimeoutError" || err.name === "AbortError");
+      if (attempt === 0 && !timedOut) continue;
+      return new Response(JSON.stringify({ error: "backend unreachable" }), { status: 502 });
+    }
   }
 }
 
