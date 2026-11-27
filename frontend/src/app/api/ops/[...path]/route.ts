@@ -5,7 +5,7 @@ import { forward } from "@/lib/api/server";
 // Backend-for-frontend proxy for operational endpoints. The browser never
 // sees the Sprite URL or token; only whitelisted API paths are reachable and
 // the backend re-validates every body with its typed schemas.
-const ALLOWED = /^(organization|resources\/[a-z-]+(\/[0-9a-f-]{36})?|inventory\/(summary|lots|donations)|events(\/[0-9a-f-]{36})?|audit|compiler\/(plan|graph|impact\/[0-9a-f-]{36})|optimizer\/runs(\/[0-9a-f-]{36})?|agent\/(status|executions(\/[0-9a-f-]{36})?))$/;
+const ALLOWED = /^(organization|resources\/[a-z-]+(\/[0-9a-f-]{36})?|inventory\/(summary|lots|donations)|events(\/[0-9a-f-]{36})?|audit|compiler\/(plan|graph|impact\/[0-9a-f-]{36})|optimizer\/runs(\/[0-9a-f-]{36})?|agent\/(status|executions(\/[0-9a-f-]{36})?)|auth\/me|approvals(\/[0-9a-f-]{36}(\/decision)?)?|plans\/current|command-center|recompilation\/[0-9a-f-]{36}|simulations(\/scenarios)?|notifications)$/;
 const MAX_BODY = 64 * 1024;
 
 async function handle(request: Request, ctx: { params: Promise<{ path: string[] }> }) {
@@ -26,7 +26,7 @@ async function handle(request: Request, ctx: { params: Promise<{ path: string[] 
   }
   const url = new URL(request.url);
   const params = new URLSearchParams();
-  for (const key of ["limit", "include_pledged"]) {
+  for (const key of ["limit", "include_pledged", "status"]) {
     const v = url.searchParams.get(key);
     if (v !== null && /^[a-z0-9]{1,8}$/.test(v)) params.set(key, v);
   }

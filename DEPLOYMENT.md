@@ -96,13 +96,69 @@ Seed the labelled Thanksgiving sample operation through the API. All of it is cr
 CORNUCOPIA_API_URL=http://localhost:18000 CORNUCOPIA_API_TOKEN=<token> uv run --project backend python scripts/seed_sample.py --label "[sample] "
 ```
 
-## 3. Frontend on Vercel (*planned for Phase 8*)
+## Operators
 
-The frontend needs two server-side environment variables (never `NEXT_PUBLIC_`):
+Operator accounts live in Supabase as argon2id hashes. Create them on the Sprite. With `--generate-password`, a strong password is printed exactly once.
+
+```bash
+sprite exec -s cornucopia -- bash -c 'cd /home/sprite/cornucopia/current/backend && .venv/bin/python -m cornucopia.admin create-operator --username raj --name Raj --role admin --generate-password'
+```
+
+Roles: `viewer` (read), `operator` (report events, edit resources, run the optimizer), `approver` (also decide approvals), `admin`.
+
+## 3. Public API URL
+
+The API requires the service token on every route except `/health`, and an operator session on operational routes. With that in place the Sprite URL can be public so a hosted frontend can reach it:
+
+```bash
+sprite config update -s cornucopia --url-auth public
+```
+
+Health checks:
+
+| URL | Meaning |
+|---|---|
+| `GET /health` | API process liveness (no auth) |
+| `GET /health/db` | Supabase reachable through the connector (service token) |
+| `GET /health/agent` | an agent worker heartbeat within the last 90 s (service token) |
+
+## 4. Frontend on Vercel
+
+The frontend is a standard Next.js 16 app in `frontend/`. It needs two server-side environment variables, never `NEXT_PUBLIC_`:
 
 | Variable | Value |
 |---|---|
-| `CORNUCOPIA_API_URL` | the Sprite URL from `sprite info` |
-| `CORNUCOPIA_API_TOKEN` | the token in the Sprite's `cornucopia.env` |
+| `CORNUCOPIA_API_URL` | `https://cornucopia-b6zug.sprites.app` (from `sprite info`) |
+| `CORNUCOPIA_API_TOKEN` | the `CORNUCOPIA_API_TOKEN` value in the Sprite's `/home/sprite/.config/cornucopia/cornucopia.env` |
 
-The Sprite URL is org-private by default. It will be switched to public with `sprite config update --url-auth public` only after per-operator auth lands (Phase 8). Until then the frontend runs locally against `sprite proxy`.
+These steps need your Vercel account:
+
+```bash
+npm i -g vercel
+```
+
+```bash
+cd frontend && vercel link
+```
+
+```bash
+vercel env add CORNUCOPIA_API_URL production
+```
+
+```bash
+vercel env add CORNUCOPIA_API_TOKEN production
+```
+
+```bash
+vercel --prod
+```
+
+Alternatively, import the GitHub repo in the Vercel dashboard with Root Directory `frontend` and set the same two variables.
+
+## 5. Restart drills (verified on the Sprite)
+
+| Drill | Command | Expected |
+|---|---|---|
+| Kill the agent mid-execution | `sprite exec -s cornucopia -- sprite-env services signal cornucopia-worker KILL` | The runtime restarts the worker. After the lease expires (≤ 60 s) the same execution resumes with `attempt + 1` from its last checkpoint. |
+| Restart the API | `sprite exec -s cornucopia -- sprite-env services restart cornucopia-api` | Requests resume. Sessions remain valid because they are signed tokens. |
+| Graceful worker stop | `sprite-env services stop cornucopia-worker` | SIGTERM: the worker finishes its current execution, records `stopped`, exits. |

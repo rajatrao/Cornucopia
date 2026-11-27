@@ -10,6 +10,9 @@ Schema: `cornucopia` (Supabase Postgres 17). Source of truth: SQLAlchemy models 
 | `20261127032000_snapshot` | `get_operational_snapshot()`: one consistent read for the compiler |
 | `20261127034000_optimization_runs` | `optimization_runs`, `optimization_results` (append-only), `record_optimization_run()` |
 | `20261127040000_agent` | `agent_executions`, `agent_execution_steps`, `agent_checkpoints`, `agent_checkpoint_writes`; lease, fencing and checkpoint RPCs; idempotent `record_optimization_run` |
+| `20261127042000_approvals` | `operators`, `plan_versions`, `plan_changes`, `approval_requests`, `approval_decisions`, `plan_routing`, `lot_allocations`, `outbox_messages`; `propose_plan`, `decide_approval`, `commit_approved_plan`, `expire_approvals`, `create_operator`; decided approvals resume agent executions |
+| `20261127050000_operator_audit` | operator changes are audited but do not bump the operational version |
+| `20261127060000_outbox_workers` | `operator_notifications`, `agent_workers`; `deliver_outbox`, `worker_heartbeat` |
 
 ## Conventions
 
@@ -39,6 +42,14 @@ Schema: `cornucopia` (Supabase Postgres 17). Source of truth: SQLAlchemy models 
 | `agent_executions` | one per event (unique); status, current/last node, attempt (fencing token), retry count, lease owner/expiry, heartbeat, result | updated only through fenced RPCs |
 | `agent_execution_steps` | node-level history | append-only |
 | `agent_checkpoints` / `agent_checkpoint_writes` | LangGraph checkpoints (serde blob, base64) and pending writes | checkpoints immutable; regular writes never overwritten |
+| `operators` | operator accounts: role viewer/operator/approver/admin, argon2id hash | audited; no plaintext passwords |
+| `plan_versions` | immutable proposals with fingerprint, state version, verdict, full plan | status proposed → committed / superseded / rejected / stale / expired |
+| `plan_changes` | per-proposal change list (commitments, substitutions, allocations, routing) | append-only |
+| `approval_requests` | binds plan version, fingerprint, state version, requesting execution, expiry | status pending → approved / rejected / expired / stale → committed |
+| `approval_decisions` | every decision attempt, including refused ones and the reason | append-only |
+| `plan_routing`, `lot_allocations` | committed routing and stock reservations | written only by `commit_approved_plan` |
+| `outbox_messages` → `operator_notifications` | transactional outbox and its delivery target | delivered exactly once |
+| `agent_workers` | worker heartbeats | |
 | `optimization_runs` | every solver execution: config, status, verdict, objectives, stages, diagnosis, timing, actor | append-only |
 | `optimization_results` | candidate plans of a run, recommended one stores the full plan JSON | append-only; exactly one recommended per run (partial unique index) |
 | `operational_events` | append-only journal | unique `(organization_id, idempotency_key)`; only processing columns may change |

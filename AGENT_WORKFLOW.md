@@ -35,9 +35,9 @@ START → receive_event → validate_event ─(invalid)────────�
 | validate_candidate | Accepts only `verified_*` verdicts. Otherwise retries with the next strategy, at most `MAX_RETRIES = 2` times. |
 | compare_plan_versions | Per-commitment changes versus doing nothing. |
 | generate_decision_report | A plain-language report built from a template (no model). |
-| request_approval | `interrupt()`: the graph pauses durably with the run id, fingerprint and state version. |
-| commit_approved_plan | Resumes with the human decision. The commit itself is done by the Phase 6 approval engine; until then the tool raises. |
-| investigate_infeasibility | Shortfalls, blocked commitments and the best verified partial plan. |
+| request_approval | Calls `propose_plan` (idempotent per execution): creates plan version vN, its change list and a PENDING approval request bound to the fingerprint, the state version, the execution and an expiry, and marks older undecided requests STALE. Then `interrupt()` pauses the graph durably. |
+| commit_approved_plan | Runs after a human decides. `claim_next_execution` hands the paused execution to a worker as soon as its request is APPROVED, REJECTED, STALE or EXPIRED, and the graph resumes with `Command(resume=decision)`. Approved plans are committed through `commit_approved_plan`; any other outcome is recorded without changing operations. |
+| investigate_infeasibility | Shortfalls, blocked commitments and the best verified partial plan. If that plan serves more meals than doing nothing, it still goes to a human (`request_approval`, flagged as escalated). Otherwise the agent escalates. |
 | escalate_to_operator | Final state `escalated`, with reasons and the proposal run id. |
 | record_outcome | Final state `completed`. |
 
@@ -45,7 +45,7 @@ When the agent continues autonomously, requests approval, escalates, or stops:
 - It continues autonomously when nothing affected is at risk; it records the outcome and changes nothing.
 - It requests approval when a verified plan meets every commitment.
 - It escalates when the best verified plan is partial, the event is invalid, or no candidate verifies within the retry budget.
-- It never commits without an approval (`commit_approved_plan` is reachable only through the interrupt).
+- It never commits without an approval. `commit_approved_plan` is reachable only through the interrupt, and the database re-verifies the approval.
 
 Infinite loops are prevented by the retry budget and by `recursion_limit = 40`. Transient gateway errors (5xx, 429, transport) are retried per node: at most 3 attempts, with exponential backoff.
 

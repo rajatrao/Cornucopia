@@ -6,6 +6,7 @@ Idempotent: existing records (matched by name) are reused, donation events
 use fixed idempotency keys.
 
     CORNUCOPIA_API_URL=http://localhost:8000 CORNUCOPIA_API_TOKEN=... \
+    CORNUCOPIA_USERNAME=raj CORNUCOPIA_PASSWORD=... \
       uv run --project backend python scripts/seed_sample.py --label "[sample] "
 
 This is demonstration data. It must only be loaded into a development or
@@ -26,12 +27,21 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--label", default="[sample] ", help="prefix for every seeded name")
     ap.add_argument("--day", default=None, help="service date YYYY-MM-DD (default: tomorrow)")
+    ap.add_argument("--quinoa-lb", default="40", help="pantry quinoa donated by the grocer")
     args = ap.parse_args()
     p = args.label
     base = os.environ.get("CORNUCOPIA_API_URL", "http://localhost:8000").rstrip("/")
     token = os.environ["CORNUCOPIA_API_TOKEN"]
-    http = httpx.Client(base_url=f"{base}/api/v1", timeout=60, headers={
-        "Authorization": f"Bearer {token}", "X-Cornucopia-Actor": "seed:sample-data"})
+    http = httpx.Client(base_url=f"{base}/api/v1", timeout=60,
+                        # fresh connection per request: long-lived keep-alive
+                        # connections through the Sprite URL proxy can stall
+                        limits=httpx.Limits(max_keepalive_connections=0),
+                        headers={"Authorization": f"Bearer {token}"})
+    login = http.post("/auth/login", json={"username": os.environ["CORNUCOPIA_USERNAME"],
+                                           "password": os.environ["CORNUCOPIA_PASSWORD"]})
+    if login.is_error:
+        raise SystemExit(f"sign-in failed: {login.status_code}")
+    http.headers["X-Cornucopia-Session"] = login.json()["token"]
 
     day = (datetime.fromisoformat(args.day).replace(tzinfo=UTC) if args.day
            else (datetime.now(UTC) + timedelta(days=1)).replace(hour=0, minute=0, second=0,
@@ -152,7 +162,7 @@ def main() -> None:
            [(ing["potatoes"], "120", "lb", 21), (ing["carrots"], "100", "lb", 14)])
     donate(f"seed-{slug}-pantry-0001", f"{p}Pantry staples", donors["grocer"],
            [(ing["butter"], "10", "lb", 20), (ing["oil"], "2", "gal", 365),
-            (ing["quinoa"], "40", "lb", 365)])
+            (ing["quinoa"], args.quinoa_lb, "lb", 365)])
     plan = http.get("/compiler/plan").raise_for_status().json()
     m = plan["plan"]["metrics"]
     print(f"seeded. baseline: {m['meals_planned']}/{m['meals_requested']} meals, "

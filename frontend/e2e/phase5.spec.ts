@@ -17,7 +17,9 @@ test("agent processes a reported event and shows its workflow timeline", async (
   await expect
     .poll(
       async () => {
-        const rows = await (await request.get("/api/ops/agent/executions?limit=50")).json();
+        const res = await request.get("/api/ops/agent/executions?limit=50");
+        if (!res.ok()) return "unavailable"; // a transient gateway hiccup just retries the poll
+        const rows = await res.json();
         return rows.find((r: { event_id: string }) => r.event_id === eventId)?.status ?? "none";
       },
       { timeout: 200_000, intervals: [3_000] },

@@ -21,13 +21,16 @@ import logging
 import os
 import socket
 import threading
+import time
 import uuid
 from dataclasses import dataclass
 from typing import Any
 from uuid import UUID
 
 import httpx
+from langgraph.types import Command
 
+from cornucopia import __version__
 from cornucopia.agent.checkpointer import SupabaseCheckpointSaver
 from cornucopia.agent.graph import RECURSION_LIMIT, build_agent_graph
 from cornucopia.agent.tools import ExecutionContext, LeaseLost, SupabaseAgentTools
@@ -79,6 +82,7 @@ class Claim:
     resumed: bool
     execution: dict[str, Any]
     event: dict[str, Any]
+    approval: dict[str, Any] | None = None
 
 
 class Worker:
@@ -91,7 +95,9 @@ class Worker:
         lease_seconds: int = 60,
         poll_seconds: float = 2.0,
         hold: SpriteHold | None = None,
+        approval_ttl_minutes: int = 240,
     ) -> None:
+        self.approval_ttl_minutes = approval_ttl_minutes
         self.db = db
         self.org = organization_id
         self.worker_id = worker_id or f"{socket.gethostname()}:{os.getpid()}:{uuid.uuid4().hex[:6]}"
@@ -109,15 +115,46 @@ class Worker:
 
     def run_forever(self) -> None:
         log.info("worker %s started for org %s", self.worker_id, self.org)
+        last_beat = 0.0
+        backoff = self.poll_seconds
         while not self._stop.is_set():
             try:
+                if time.monotonic() - last_beat > 15:
+                    self.heartbeat("running")
+                    last_beat = time.monotonic()
                 worked = self.run_once()
+                self.deliver_outbox()
+                backoff = self.poll_seconds
             except (SupabaseError, httpx.HTTPError) as exc:
-                log.warning("claim failed, backing off: %s", exc)
+                log.warning("supervisor call failed, backing off %.1fs: %s", backoff, exc)
                 worked = False
+                backoff = min(backoff * 2, 60.0)
             if not worked:
-                self._stop.wait(self.poll_seconds)
+                self._stop.wait(backoff)
+        try:
+            self.heartbeat("stopped")
+        except (SupabaseError, httpx.HTTPError):
+            pass
         log.info("worker %s stopped", self.worker_id)
+
+    def heartbeat(self, status: str) -> None:
+        self.db.rpc(
+            "worker_heartbeat",
+            {
+                "p_organization_id": str(self.org),
+                "p_worker": self.worker_id,
+                "p_status": status,
+                "p_version": __version__,
+            },
+        )
+
+    def deliver_outbox(self) -> int:
+        """Transactional outbox: deliver committed-plan messages to the feed."""
+        out = self.db.rpc("deliver_outbox", {"p_organization_id": str(self.org), "p_limit": 20})
+        n = int((out or {}).get("delivered", 0))
+        if n:
+            log.info("delivered %s outbox message(s)", n)
+        return n
 
     def claim(self) -> Claim | None:
         raw = self.db.rpc(
@@ -130,7 +167,12 @@ class Worker:
         )
         if not raw:
             return None
-        return Claim(bool(raw["resumed"]), dict(raw["execution"]), dict(raw["event"]))
+        return Claim(
+            bool(raw["resumed"]),
+            dict(raw["execution"]),
+            dict(raw["event"]),
+            dict(raw["approval"]) if raw.get("approval") else None,
+        )
 
     def run_once(self) -> bool:
         claim = self.claim()
@@ -151,7 +193,7 @@ class Worker:
             worker=self.worker_id,
             attempt=int(ex["attempt"]),
         )
-        tools = SupabaseAgentTools(self.db, self.repo, ctx)
+        tools = SupabaseAgentTools(self.db, self.repo, ctx, self.approval_ttl_minutes)
         config: dict[str, Any] = {
             "configurable": {"thread_id": ctx.thread_id, "tools": tools},
             "recursion_limit": RECURSION_LIMIT,
@@ -169,7 +211,10 @@ class Worker:
         )
         try:
             existing = self.saver.get_tuple({"configurable": {"thread_id": ctx.thread_id}})
-            if existing is not None:
+            if existing is not None and claim.approval is not None:
+                # a human decided: continue the paused graph with that decision
+                self.graph.invoke(Command(resume=claim.approval), config, durability="sync")
+            elif existing is not None:
                 self.graph.invoke(None, config, durability="sync")
             else:
                 self.graph.invoke(
@@ -218,7 +263,13 @@ class Worker:
             payload = snapshot.interrupts[0].value
             return (
                 "awaiting_approval",
-                {"trail": trail, "proposal": _jsonable(payload), "report": values.get("report")},
+                {
+                    "trail": trail,
+                    "proposal": _jsonable(payload),
+                    "report": values.get("report"),
+                    "escalated": bool(payload.get("escalated")),
+                    "investigation": values.get("investigation"),
+                },
                 None,
             )
         outcome = values.get("outcome") or {}

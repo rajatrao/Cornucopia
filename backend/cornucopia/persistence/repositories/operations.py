@@ -73,6 +73,14 @@ class OperationsRepository(ABC):
     def execution_steps(self, execution_id: UUID) -> builtins.list[Row]: ...
 
     @abstractmethod
+    def children(self, table: str, fk: str, parent_id: UUID, order: str) -> builtins.list[Row]:
+        """Rows of a child table without organization_id; parent must be org-checked."""
+
+    @abstractmethod
+    def call(self, function: str, args: dict[str, Any]) -> Any:
+        """Invoke a named RPC (all write paths are RPCs)."""
+
+    @abstractmethod
     def checkpoints(self, org: UUID, thread_id: str) -> builtins.list[Row]: ...
 
     @abstractmethod
@@ -195,6 +203,12 @@ class SupabaseOperationsRepository(OperationsRepository):
         return self._db.select(
             "optimization_results", filters={"run_id": f"eq.{run_id}"}, order="candidate.asc"
         )
+
+    def children(self, table: str, fk: str, parent_id: UUID, order: str) -> builtins.list[Row]:
+        return self._db.select(table, filters={fk: f"eq.{parent_id}"}, order=order)
+
+    def call(self, function: str, args: dict[str, Any]) -> Any:
+        return self._db.rpc(function, args)
 
     def execution_steps(self, execution_id: UUID) -> builtins.list[Row]:
         """Steps of an execution; callers must have checked its organization."""

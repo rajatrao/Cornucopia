@@ -23,10 +23,6 @@ class LeaseLost(RuntimeError):  # noqa: N818 - domain name
     """A newer attempt owns this execution; this worker must stop immediately."""
 
 
-class ApprovalEngineUnavailable(RuntimeError):  # noqa: N818
-    """Commits require the Phase 6 approval engine."""
-
-
 @dataclass(frozen=True)
 class ExecutionContext:
     organization_id: UUID
@@ -63,15 +59,27 @@ class AgentTools(ABC):
     def record_step(self, node: str, status: str, detail: dict[str, Any]) -> None:
         """Fenced execution history; raises LeaseLost if this worker was superseded."""
 
-    def commit_plan(self, run_id: UUID, approval: dict[str, Any]) -> dict[str, Any]:
-        raise ApprovalEngineUnavailable("plan commits are implemented by the approval engine")
+    @abstractmethod
+    def propose(
+        self, run_id: UUID, report: dict[str, Any], changes: list[dict[str, Any]], escalated: bool
+    ) -> dict[str, Any]:
+        """Create (idempotently) the plan version + approval request for this execution."""
+
+    @abstractmethod
+    def commit_plan(self, request_id: UUID) -> dict[str, Any]:
+        """Atomically commit an approved plan (fenced by this execution's lease)."""
 
 
 class SupabaseAgentTools(AgentTools):
     def __init__(
-        self, db: SupabaseClient, repo: OperationsRepository, ctx: ExecutionContext
+        self,
+        db: SupabaseClient,
+        repo: OperationsRepository,
+        ctx: ExecutionContext,
+        approval_ttl_minutes: int = 240,
     ) -> None:
         self.db, self.repo, self.ctx = db, repo, ctx
+        self.approval_ttl_minutes = approval_ttl_minutes
 
     def load_event(self) -> dict[str, Any]:
         row = self.repo.get("operational_events", self.ctx.organization_id, self.ctx.event_id)
@@ -118,6 +126,36 @@ class SupabaseAgentTools(AgentTools):
             self.ctx.organization_id, self.ctx.actor, run_row, results
         )
         return run_id, rep
+
+    def propose(
+        self, run_id: UUID, report: dict[str, Any], changes: list[dict[str, Any]], escalated: bool
+    ) -> dict[str, Any]:
+        out: dict[str, Any] = self.db.rpc(
+            "propose_plan",
+            {
+                "p_organization_id": str(self.ctx.organization_id),
+                "p_execution_id": str(self.ctx.execution_id),
+                "p_worker": self.ctx.worker,
+                "p_attempt": self.ctx.attempt,
+                "p_run_id": str(run_id),
+                "p_report": report,
+                "p_changes": changes,
+                "p_escalated": escalated,
+                "p_ttl_minutes": self.approval_ttl_minutes,
+            },
+        )
+        return out
+
+    def commit_plan(self, request_id: UUID) -> dict[str, Any]:
+        out: dict[str, Any] = self.db.rpc(
+            "commit_approved_plan",
+            {
+                "p_request_id": str(request_id),
+                "p_worker": self.ctx.worker,
+                "p_attempt": self.ctx.attempt,
+            },
+        )
+        return out
 
     def record_step(self, node: str, status: str, detail: dict[str, Any]) -> None:
         ok = self.db.rpc(

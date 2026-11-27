@@ -55,6 +55,15 @@ class Settings(BaseSettings):
     # API auth: bearer token shared with the frontend's server side only.
     api_token: SecretStr | None = Field(default=None, alias="CORNUCOPIA_API_TOKEN")
     cors_origins: list[str] = Field(default_factory=list, alias="CORNUCOPIA_CORS_ORIGINS")
+    # Operator sessions (Phase 6): HS256 signing secret held only by the API.
+    session_secret: SecretStr = Field(
+        default=SecretStr("dev-only-session-secret-change-me-0123456789"),
+        alias="CORNUCOPIA_SESSION_SECRET",
+    )
+    session_ttl_minutes: int = Field(default=480, ge=5, le=24 * 60, alias="CORNUCOPIA_SESSION_TTL")
+    approval_ttl_minutes: int = Field(
+        default=240, ge=5, le=24 * 60, alias="CORNUCOPIA_APPROVAL_TTL"
+    )
 
     http_timeout_s: float = Field(default=15.0, alias="CORNUCOPIA_HTTP_TIMEOUT_S")
     http_retries: int = Field(default=3, ge=0, le=6, alias="CORNUCOPIA_HTTP_RETRIES")
@@ -70,6 +79,11 @@ class Settings(BaseSettings):
                 raise ValueError("SUPABASE_URL and SUPABASE_SECRET_KEY are required for direct")
         if self.environment == "production" and self.api_token is None:
             raise ValueError("CORNUCOPIA_API_TOKEN is required in production")
+        if self.environment == "production" and (
+            "dev-only" in self.session_secret.get_secret_value()
+            or len(self.session_secret.get_secret_value()) < 32
+        ):
+            raise ValueError("a strong CORNUCOPIA_SESSION_SECRET is required in production")
         return self
 
 

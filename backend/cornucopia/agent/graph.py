@@ -314,6 +314,31 @@ def run_cpsat_optimizer(state: AgentState, config: RunnableConfig) -> dict[str, 
     }
 
 
+def _alloc_totals(plan: Any) -> dict[str, str]:
+    out: dict[str, Any] = {}
+    if plan is None:
+        return {}
+    for a in plan.allocations:
+        out[str(a.ingredient_id)] = out.get(str(a.ingredient_id), 0) + a.quantity_base
+    return {k: str(v) for k, v in out.items()}
+
+
+def _reroutes(plan: Any) -> list[dict[str, Any]]:
+    if plan is None:
+        return []
+    orig = {str(c.commitment_id): str(c.delivery_id) for c in plan.commitments}
+    return [
+        {
+            "commitment_id": str(a.commitment_id),
+            "from": orig.get(str(a.commitment_id), "none"),
+            "to": str(a.delivery_id),
+            "meals": a.meals,
+        }
+        for a in plan.routing
+        if orig.get(str(a.commitment_id)) != str(a.delivery_id)
+    ]
+
+
 @node("validate_candidate")
 def validate_candidate(state: AgentState, config: RunnableConfig) -> dict[str, Any]:
     o = state["optimization"]
@@ -337,23 +362,71 @@ def validate_candidate(state: AgentState, config: RunnableConfig) -> dict[str, A
 
 @node("compare_plan_versions")
 def compare_plan_versions(state: AgentState, config: RunnableConfig) -> dict[str, Any]:
+    """What the proposal changes relative to operating without recovery."""
     snap = _tools(config).snapshot()
     base = compile_baseline(snap)
     o = state["optimization"]
-    # Rebuild only what the diff needs from the stored recommended plan summary.
+    names = {str(c.id): c.recipient for c in snap.commitments}
+    ing = {str(i.id): i.name for i in snap.ingredients}
     before = {str(c.commitment_id): c.planned for c in base.commitments}
     after = {c["commitment_id"]: c["planned"] for c in o["commitments"]}
-    changes = [
-        {"commitment_id": k, "before": before.get(k, 0), "after": after.get(k, 0)}
+    changes: list[dict[str, Any]] = [
+        {
+            "kind": "commitment",
+            "ref_id": k,
+            "label": names.get(k, k),
+            "field": "planned_meals",
+            "before": str(before.get(k, 0)),
+            "after": str(after.get(k, 0)),
+        }
         for k in sorted(set(before) | set(after))
         if before.get(k, 0) != after.get(k, 0)
     ]
+    for s in o["substitutions"]:
+        changes.append(
+            {
+                "kind": "substitution",
+                "ref_id": s["substitution_id"],
+                "label": f"{ing.get(s['ingredient_id'], '?')} -> "
+                f"{ing.get(s['substitute_id'], '?')}",
+                "field": "substitute_base",
+                "before": "0",
+                "after": str(s["substitute_base"]),
+            }
+        )
+    base_alloc: dict[str, Any] = {}
+    for a in base.allocations:
+        base_alloc[str(a.ingredient_id)] = base_alloc.get(str(a.ingredient_id), 0) + a.quantity_base
+    for k, v in sorted(o.get("allocations_by_ingredient", {}).items()):
+        if str(base_alloc.get(k, 0)) != str(v):
+            changes.append(
+                {
+                    "kind": "allocation",
+                    "ref_id": k,
+                    "label": ing.get(k, k),
+                    "field": "allocated_base",
+                    "before": str(base_alloc.get(k, 0)),
+                    "after": str(v),
+                }
+            )
+    for r in o.get("reroutes", []):
+        changes.append(
+            {
+                "kind": "routing",
+                "ref_id": r["commitment_id"],
+                "label": names.get(r["commitment_id"], r["commitment_id"]),
+                "field": "route",
+                "before": r["from"],
+                "after": r["to"],
+            }
+        )
     return {
         "comparison": {
             "baseline_meals": base.metrics.meals_planned,
             "proposed_meals": o["meals_planned"],
             "meals_recovered": o["meals_planned"] - base.metrics.meals_planned,
-            "commitment_changes": changes,
+            "commitment_changes": [c for c in changes if c["kind"] == "commitment"],
+            "changes": changes,
             "substitutions": len(o["substitutions"]),
             "baseline_state_version": base.state_version,
         }
@@ -438,25 +511,53 @@ def escalate_to_operator(state: AgentState, config: RunnableConfig) -> dict[str,
 
 @node("request_approval")
 def request_approval(state: AgentState, config: RunnableConfig) -> dict[str, Any]:
+    """Persist the proposal (plan version + approval request), then pause.
+
+    Re-executed on resume; ``propose`` is idempotent per execution."""
     o = state["optimization"]
+    escalated = bool(state.get("investigation"))
+    report = dict(state.get("report") or {})
+    if escalated:
+        report["escalation"] = state["investigation"]["explanation"]
+    proposal = _tools(config).propose(
+        UUID(o["run_id"]), report, (state.get("comparison") or {}).get("changes", []), escalated
+    )
     decision = interrupt(
         {
             "kind": "approval_required",
             "run_id": o["run_id"],
-            "fingerprint": o["fingerprint"],
-            "state_version": o["state_version"],
-            "report": state["report"],
+            "request_id": str(proposal["request_id"]),
+            "plan_version_id": str(proposal["plan_version_id"]),
+            "fingerprint": proposal["fingerprint"],
+            "state_version": proposal["state_version"],
+            "expires_at": str(proposal["expires_at"]),
+            "escalated": escalated,
+            "report": report,
         }
     )
-    return {"approval": decision if isinstance(decision, dict) else {"raw": decision}}
+    approval = decision if isinstance(decision, dict) else {"status": str(decision)}
+    return {"approval": {**approval, "request_id": str(proposal["request_id"])}}
 
 
 @node("commit_approved_plan")
 def commit_approved_plan(state: AgentState, config: RunnableConfig) -> dict[str, Any]:
     approval = state.get("approval") or {}
-    if approval.get("decision") != "approved":
-        return {"decision": "rejected", "outcome": {"status": "rejected", "approval": approval}}
-    result = _tools(config).commit_plan(UUID(state["optimization"]["run_id"]), approval)
+    status = approval.get("status")
+    if status != "approved":
+        return {
+            "decision": str(status or "rejected"),
+            "outcome": {"status": str(status or "rejected"), "approval": approval},
+        }
+    result = _tools(config).commit_plan(UUID(approval["request_id"]))
+    if not result.get("committed"):
+        return {
+            "decision": "commit_refused",
+            "outcome": {
+                "status": "commit_refused",
+                "code": result.get("code"),
+                "approval": approval,
+            },
+        }
     return {"decision": "committed", "outcome": {"status": "committed", "commit": result}}
 
 
@@ -493,6 +594,18 @@ def after_validate_candidate(
     if d == "retry":
         return "generate_candidate_plan"
     return "investigate_infeasibility"
+
+
+def after_investigation(
+    state: AgentState,
+) -> Literal["request_approval", "escalate_to_operator"]:
+    """A verified partial plan that serves more meals than doing nothing still
+    goes to a human (flagged as an escalation); otherwise escalate outright."""
+    o = state.get("optimization") or {}
+    cmp_ = state.get("comparison") or {}
+    if str(o.get("verdict", "")).startswith("verified") and int(cmp_.get("meals_recovered", 0)) > 0:
+        return "request_approval"
+    return "escalate_to_operator"
 
 
 def after_report(state: AgentState) -> Literal["request_approval", "investigate_infeasibility"]:
@@ -549,7 +662,7 @@ def build_agent_graph(checkpointer: Any) -> Any:
     g.add_conditional_edges("generate_decision_report", after_report)
     g.add_edge("request_approval", "commit_approved_plan")
     g.add_edge("commit_approved_plan", "record_outcome")
-    g.add_edge("investigate_infeasibility", "escalate_to_operator")
+    g.add_conditional_edges("investigate_infeasibility", after_investigation)
     g.add_edge("escalate_to_operator", END)
     g.add_edge("record_outcome", END)
     return g.compile(checkpointer=checkpointer)

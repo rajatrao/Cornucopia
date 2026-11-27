@@ -100,3 +100,14 @@ Runs on a desktop and a mobile (Pixel 7) profile.
 | live: backlog | worker service drained 48 journaled dev events autonomously, 0 failures; one execution interrupted by a redeploy resumed as attempt 2 |
 | live: kill drill | `sprite-env services signal cornucopia-worker KILL` right after `update_operational_state`; lease expired, the restarted worker resumed the same execution (attempt 2), finished the remaining nodes, and paused at `request_approval` with a verified 500/500 proposal; 14 checkpoints |
 | Playwright (desktop + mobile, live) | 28 passed (agent spec waits for the Sprite worker to finish an event, then checks the timeline) |
+
+## Phases 6–9 results (2026-11-27)
+
+| Check | Result |
+|---|---|
+| pytest (incl. 9 Postgres approval-engine tests: unauthorized, duplicate, fingerprint, stale at decision, stale at commit, expired, concurrent approvals, commit fencing, plan-column guard, supersession; agent approve/reject/stale flows; command center, recompilation, simulation isolation) | 111 passed |
+| ruff, ruff format, mypy --strict; tsc strict, eslint, next build | clean |
+| migrations | 9 reproduce an identical schema; 0007–0009 applied with `supabase db push` |
+| Playwright on the live stack (desktop + mobile) | 36 passed: sign-in, approval loop (operator refused 403 and recorded, confirmation required, agent commits), command center, React Flow recompilation, isolated simulation |
+| Live scenarios (`scripts/run_scenarios.py --approve`, rehearsal org) | rice cancelled → verified 500/500 with quinoa → approved → committed atomically; potatoes spoiled → escalated, 120 lb short |
+| Public URL | `/health` open; every other route 401 without token, and 401 without a session |

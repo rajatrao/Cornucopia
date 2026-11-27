@@ -2,15 +2,17 @@
 
 from __future__ import annotations
 
-import re
+import time
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from typing import Annotated, Any
 from uuid import UUID
 
+import jwt
 from fastapi import APIRouter, Depends, Header, HTTPException, Request, Response, status
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
+from cornucopia.auth import OperatorIdentity, decode_session
 from cornucopia.domain.events import (
     DonationCreated,
     EventPayload,
@@ -35,8 +37,6 @@ from cornucopia.persistence.repositories.operations import (
     Organization,
     new_correlation_id,
 )
-
-ACTOR_RE = re.compile(r"^[A-Za-z0-9:._@ -]{3,120}$")
 
 # custom SQLSTATEs raised by our RPCs, plus the Postgres ones we expect
 _SQLSTATE_HTTP = {
@@ -73,20 +73,62 @@ def organization(request: Request) -> Organization:
     return org
 
 
-def actor(x_cornucopia_actor: Annotated[str | None, Header()] = None) -> str:
-    """Who is acting. Phase 2: asserted by the trusted frontend server.
+_OP_CACHE: dict[tuple[str, str], tuple[float, OperatorIdentity | None]] = {}
+_OP_CACHE_TTL_S = 30.0
 
-    Per-operator authentication replaces this in Phase 6/8.
-    """
-    value = x_cornucopia_actor or "operator"
-    if not ACTOR_RE.match(value):
-        raise HTTPException(422, "invalid actor")
-    return value
+
+def current_operator(
+    request: Request,
+    x_cornucopia_session: Annotated[str | None, Header()] = None,
+) -> OperatorIdentity:
+    """The signed-in operator. The frontend server forwards the session token
+    from its HttpOnly cookie; the API verifies signature, expiry and org, and
+    that the operator is still active (cached for 30 s to spare round trips)."""
+    if not x_cornucopia_session:
+        raise HTTPException(401, "sign in required")
+    settings = request.app.state.settings
+    org: Organization = request.app.state.organization
+    try:
+        op_id = decode_session(
+            x_cornucopia_session, settings.session_secret.get_secret_value(), org.id
+        )
+    except jwt.PyJWTError as exc:
+        raise HTTPException(401, "session invalid or expired") from exc
+    key = (str(org.id), str(op_id))
+    hit = _OP_CACHE.get(key)
+    if hit and time.monotonic() - hit[0] < _OP_CACHE_TTL_S:
+        ident = hit[1]
+    else:
+        repo: OperationsRepository = request.app.state.ops_repo
+        row = repo.get("operators", org.id, op_id)
+        ident = (
+            OperatorIdentity.model_validate(row) if row is not None and row.get("active") else None
+        )
+        _OP_CACHE[key] = (time.monotonic(), ident)
+    if ident is None:
+        raise HTTPException(401, "operator inactive or unknown")
+    return ident
+
+
+def require_role(role: str) -> Any:
+    def dep(op: Annotated[OperatorIdentity, Depends(current_operator)]) -> OperatorIdentity:
+        if not op.at_least(role):  # type: ignore[arg-type]
+            raise HTTPException(403, f"requires the {role} role")
+        return op
+
+    return dep
+
+
+def actor(op: Annotated[OperatorIdentity, Depends(require_role("operator"))]) -> str:
+    """Who is acting: always the authenticated operator, never a client claim."""
+    return op.actor
 
 
 Repo = Annotated[OperationsRepository, Depends(ops_repo)]
 Org = Annotated[Organization, Depends(organization)]
 Actor = Annotated[str, Depends(actor)]
+Viewer = Annotated[OperatorIdentity, Depends(current_operator)]
+Approver = Annotated[OperatorIdentity, Depends(require_role("approver"))]
 
 
 class OrgOut(BaseModel):
