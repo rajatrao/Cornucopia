@@ -14,8 +14,9 @@ CORNUCOPIA is an autonomous resource compiler built for Fly.io Hacksgiving 2026.
 | Phase | Scope | State |
 |---|---|---|
 | 0 | Platform discovery, architecture | Done |
-| 1 | Foundation, Supabase connector, migrations, frontend link | Done, awaiting approval |
-| 2 to 9 | Domain, compiler, optimizer, agent, approvals, UI, resilience, demo | Planned (`IMPLEMENTATION_PLAN.md`) |
+| 1 | Foundation, Supabase connector, migrations, frontend link | Done |
+| 2 | Domain model, units, operational event journal, resource UI | Done, awaiting approval (branch `phase-2-domain-events`) |
+| 3 to 9 | Compiler, optimizer, agent, approvals, command center, resilience, demo | Planned (`IMPLEMENTATION_PLAN.md`) |
 
 ## Repository map
 

@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.2.0 (2026-11-27): Phase 2 domain model and operational event engine
+
+- Unit engine with exact Decimal conversions. Mass/volume needs a density and count/mass needs a unit weight; portions never convert.
+- Domain schema: donors, ingredients, donations, inventory lots, recipes, substitutions, meals, teams, volunteers, deliveries, commitments, meal batches.
+- Nine typed operational events with an idempotent, transactional `ingest_event` RPC and an append-only journal.
+- Row-level audit trail and operational state version, both maintained by triggers.
+- All writes go through RPCs carrying the actor, because the gateway does not forward custom headers.
+- API: resources CRUD, inventory summary/lots/donations, events, audit.
+- UI: Resources, Inventory, Event Center, Audit history; BFF proxy with a path whitelist.
+
 ## 0.1.0 (2026-11-27): Phase 1 foundation
 
 - FastAPI service with `/health`, `/health/db` and connectivity probe endpoints; bearer-token auth.

@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 
+import { SiteNav } from "@/components/site-nav";
+
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -10,7 +12,10 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
-      <body className="bg-amber-50 text-stone-900 antialiased">{children}</body>
+      <body className="bg-amber-50 text-stone-900 antialiased">
+        <SiteNav />
+        {children}
+      </body>
     </html>
   );
 }

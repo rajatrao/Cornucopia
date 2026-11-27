@@ -57,3 +57,41 @@ Raj approved Phase 0 with: dedicated `cornucopia` schema, Supabase CLI for schem
 - [x] No privileged secret reaches the browser
 
 Recommendation: proceed to Phase 2.
+
+## 2026-11-27 Phase 2: domain model and operational event engine (branch `phase-2-domain-events`)
+
+### Files created
+- Backend: `domain/{units,events,inventory,resources}.py`, `persistence/repositories/operations.py`, `api/operations.py`, `tests/{test_units,test_phase2_api}.py`, `tests/db/test_ingest_event_sql.py`
+- DB: `db/sql/{0002_domain_events,0003_resource_writes}.sql`, `db/alembic/versions/{0002_domain_events,0003_resource_writes}.py`, `supabase/migrations/{20261127030000_domain_events,20261127031500_resource_writes}.sql`
+- Frontend: `app/{resources,inventory,events,history}/page.tsx`, `app/api/ops/[...path]/route.ts`, `components/{field-input,resource-manager,event-center,inventory-view,audit-view,site-nav}.tsx`, `lib/{ops,resource-config}.ts`, `e2e/phase2.spec.ts`
+- `docs/img/phase2-{event-center,inventory}.png`
+
+### Files modified
+`persistence/models.py`, `persistence/memory.py`, `api/app.py`, `config.py`, `scripts/deploy_sprite.sh` (org config), `frontend/src/lib/api/server.ts`, `app/layout.tsx`, docs.
+
+### Architecture decisions
+- **Facts vs. plans.** Events record what happened in the world, such as a cancelled donation or a sick volunteer, and update operational state immediately and atomically. Plan changes that respond to those facts are proposals that need approval (Phases 5 and 6).
+- **One write path per kind.** Master data goes through `write_resource` and operational facts through `ingest_event`. Direct table writes are revoked, so every change is audited with its actor.
+- **Gateway finding:** custom headers are not forwarded, so the actor travels as an RPC argument.
+- Quantities keep the operator's report and a base-unit value. Unsafe conversions are refused with a clear message.
+- Lots and donations are event-sourced, not CRUD.
+- Deployment operates org `cornucopia-dev`. The Phase 9 demo will use a clean org.
+
+### Verification
+See TESTING.md "Phase 2 results": 54 backend tests (11 on real Postgres incl. concurrent duplicate submissions), live connector check on the Sprite, 16 Playwright tests against the real stack.
+
+### Known limitations
+- Actor identity is asserted by the frontend server (single shared token). Per-operator auth comes in Phase 6/8.
+- The in-memory test double implements only some event effects. Authoritative semantics are tested in SQL.
+- The dev org contains `[e2e]` and `[verify]` records from automated tests.
+- The UI is functional, not yet the Phase 7 command-center design.
+
+### Acceptance checklist
+- [x] CRUD operations work through the UI (Playwright, desktop + mobile)
+- [x] Event creation works (all 9 types have structured forms; DB effects tested)
+- [x] Event history is persistent (Supabase journal, append-only)
+- [x] Duplicate event submissions do not create duplicate effects (API, DB, concurrency, UI double-submit)
+- [x] Inventory calculations are validated (summary tests, live 180 lb → 0 lb)
+- [x] Unit conversions pass tests (19)
+
+Recommendation: proceed to Phase 3.

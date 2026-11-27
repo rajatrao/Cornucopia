@@ -1,6 +1,139 @@
 {
   "components": {
     "schemas": {
+      "AuditOut": {
+        "properties": {
+          "action": {
+            "title": "Action",
+            "type": "string"
+          },
+          "actor": {
+            "title": "Actor",
+            "type": "string"
+          },
+          "at": {
+            "format": "date-time",
+            "title": "At",
+            "type": "string"
+          },
+          "event_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Event Id"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "record_id": {
+            "title": "Record Id",
+            "type": "string"
+          },
+          "table_name": {
+            "title": "Table Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "table_name",
+          "record_id",
+          "action",
+          "actor",
+          "at"
+        ],
+        "title": "AuditOut",
+        "type": "object"
+      },
+      "CommitmentChanged": {
+        "additionalProperties": false,
+        "properties": {
+          "commitment_id": {
+            "format": "uuid",
+            "title": "Commitment Id",
+            "type": "string"
+          },
+          "diet_requirements": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/Diet"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Diet Requirements"
+          },
+          "due_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Due At"
+          },
+          "meals_count": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "maximum": 100000.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meals Count"
+          },
+          "reason": {
+            "maxLength": 500,
+            "minLength": 3,
+            "title": "Reason",
+            "type": "string"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "enum": [
+                  "cancelled",
+                  "fulfilled"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status"
+          },
+          "type": {
+            "const": "COMMITMENT_CHANGED",
+            "default": "COMMITMENT_CHANGED",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "commitment_id",
+          "reason"
+        ],
+        "title": "CommitmentChanged",
+        "type": "object"
+      },
       "DbHealthOut": {
         "properties": {
           "db_schema": {
@@ -56,6 +189,477 @@
         "title": "DbHealthOut",
         "type": "object"
       },
+      "DeliveryCancelled": {
+        "additionalProperties": false,
+        "properties": {
+          "delivery_id": {
+            "format": "uuid",
+            "title": "Delivery Id",
+            "type": "string"
+          },
+          "reason": {
+            "maxLength": 500,
+            "minLength": 3,
+            "title": "Reason",
+            "type": "string"
+          },
+          "type": {
+            "const": "DELIVERY_CANCELLED",
+            "default": "DELIVERY_CANCELLED",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "delivery_id",
+          "reason"
+        ],
+        "title": "DeliveryCancelled",
+        "type": "object"
+      },
+      "DeliveryDelayed": {
+        "additionalProperties": false,
+        "properties": {
+          "delay_minutes": {
+            "exclusiveMinimum": 0.0,
+            "maximum": 1440.0,
+            "title": "Delay Minutes",
+            "type": "integer"
+          },
+          "delivery_id": {
+            "format": "uuid",
+            "title": "Delivery Id",
+            "type": "string"
+          },
+          "reason": {
+            "maxLength": 500,
+            "minLength": 3,
+            "title": "Reason",
+            "type": "string"
+          },
+          "type": {
+            "const": "DELIVERY_DELAYED",
+            "default": "DELIVERY_DELAYED",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "delivery_id",
+          "delay_minutes",
+          "reason"
+        ],
+        "title": "DeliveryDelayed",
+        "type": "object"
+      },
+      "Diet": {
+        "enum": [
+          "vegetarian",
+          "vegan",
+          "gluten_free",
+          "nut_free",
+          "dairy_free",
+          "halal"
+        ],
+        "title": "Diet",
+        "type": "string"
+      },
+      "DonationCancelled": {
+        "additionalProperties": false,
+        "properties": {
+          "donation_id": {
+            "format": "uuid",
+            "title": "Donation Id",
+            "type": "string"
+          },
+          "reason": {
+            "maxLength": 500,
+            "minLength": 3,
+            "title": "Reason",
+            "type": "string"
+          },
+          "type": {
+            "const": "DONATION_CANCELLED",
+            "default": "DONATION_CANCELLED",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "donation_id",
+          "reason"
+        ],
+        "title": "DonationCancelled",
+        "type": "object"
+      },
+      "DonationCreated": {
+        "additionalProperties": false,
+        "properties": {
+          "description": {
+            "maxLength": 300,
+            "minLength": 3,
+            "title": "Description",
+            "type": "string"
+          },
+          "donor_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Donor Id"
+          },
+          "expected_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expected At"
+          },
+          "lots": {
+            "items": {
+              "$ref": "#/components/schemas/DonationLotIn"
+            },
+            "maxItems": 50,
+            "minItems": 1,
+            "title": "Lots",
+            "type": "array"
+          },
+          "received": {
+            "title": "Received",
+            "type": "boolean"
+          },
+          "type": {
+            "const": "DONATION_CREATED",
+            "default": "DONATION_CREATED",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "description",
+          "received",
+          "lots"
+        ],
+        "title": "DonationCreated",
+        "type": "object"
+      },
+      "DonationLotIn": {
+        "additionalProperties": false,
+        "properties": {
+          "expires_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expires At"
+          },
+          "ingredient_id": {
+            "format": "uuid",
+            "title": "Ingredient Id",
+            "type": "string"
+          },
+          "quantity": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "title": "Quantity"
+          },
+          "unit": {
+            "$ref": "#/components/schemas/Unit"
+          }
+        },
+        "required": [
+          "ingredient_id",
+          "quantity",
+          "unit"
+        ],
+        "title": "DonationLotIn",
+        "type": "object"
+      },
+      "DonationOut": {
+        "properties": {
+          "cancel_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cancel Reason"
+          },
+          "cancelled_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cancelled At"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "donor_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Donor Id"
+          },
+          "expected_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expected At"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "received_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Received At"
+          },
+          "source_event_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Event Id"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "created_at",
+          "description",
+          "status"
+        ],
+        "title": "DonationOut",
+        "type": "object"
+      },
+      "EventIn": {
+        "additionalProperties": false,
+        "properties": {
+          "correlation_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Correlation Id"
+          },
+          "event": {
+            "discriminator": {
+              "mapping": {
+                "COMMITMENT_CHANGED": "#/components/schemas/CommitmentChanged",
+                "DELIVERY_CANCELLED": "#/components/schemas/DeliveryCancelled",
+                "DELIVERY_DELAYED": "#/components/schemas/DeliveryDelayed",
+                "DONATION_CANCELLED": "#/components/schemas/DonationCancelled",
+                "DONATION_CREATED": "#/components/schemas/DonationCreated",
+                "INGREDIENT_EXPIRED": "#/components/schemas/IngredientExpired",
+                "INVENTORY_ADJUSTED": "#/components/schemas/InventoryAdjusted",
+                "PREPARATION_CAPACITY_CHANGED": "#/components/schemas/PreparationCapacityChanged",
+                "VOLUNTEER_UNAVAILABLE": "#/components/schemas/VolunteerUnavailable"
+              },
+              "propertyName": "type"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/DonationCreated"
+              },
+              {
+                "$ref": "#/components/schemas/DonationCancelled"
+              },
+              {
+                "$ref": "#/components/schemas/InventoryAdjusted"
+              },
+              {
+                "$ref": "#/components/schemas/IngredientExpired"
+              },
+              {
+                "$ref": "#/components/schemas/VolunteerUnavailable"
+              },
+              {
+                "$ref": "#/components/schemas/DeliveryDelayed"
+              },
+              {
+                "$ref": "#/components/schemas/DeliveryCancelled"
+              },
+              {
+                "$ref": "#/components/schemas/CommitmentChanged"
+              },
+              {
+                "$ref": "#/components/schemas/PreparationCapacityChanged"
+              }
+            ],
+            "title": "Event"
+          },
+          "idempotency_key": {
+            "maxLength": 200,
+            "minLength": 8,
+            "pattern": "^[A-Za-z0-9._:-]+$",
+            "title": "Idempotency Key",
+            "type": "string"
+          }
+        },
+        "required": [
+          "idempotency_key",
+          "event"
+        ],
+        "title": "EventIn",
+        "type": "object"
+      },
+      "EventOut": {
+        "properties": {
+          "actor": {
+            "title": "Actor",
+            "type": "string"
+          },
+          "correlation_id": {
+            "format": "uuid",
+            "title": "Correlation Id",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "effect": {
+            "additionalProperties": true,
+            "title": "Effect",
+            "type": "object"
+          },
+          "event_type": {
+            "title": "Event Type",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "idempotency_key": {
+            "title": "Idempotency Key",
+            "type": "string"
+          },
+          "payload": {
+            "additionalProperties": true,
+            "title": "Payload",
+            "type": "object"
+          },
+          "processed_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Processed At"
+          },
+          "processing_note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Processing Note"
+          },
+          "processing_status": {
+            "title": "Processing Status",
+            "type": "string"
+          },
+          "state_version": {
+            "title": "State Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "idempotency_key",
+          "event_type",
+          "payload",
+          "actor",
+          "correlation_id",
+          "effect",
+          "state_version",
+          "processing_status",
+          "created_at"
+        ],
+        "title": "EventOut",
+        "type": "object"
+      },
       "HTTPValidationError": {
         "properties": {
           "detail": {
@@ -67,6 +671,130 @@
           }
         },
         "title": "HTTPValidationError",
+        "type": "object"
+      },
+      "IngestOut": {
+        "properties": {
+          "duplicate": {
+            "title": "Duplicate",
+            "type": "boolean"
+          },
+          "event": {
+            "$ref": "#/components/schemas/EventOut"
+          }
+        },
+        "required": [
+          "duplicate",
+          "event"
+        ],
+        "title": "IngestOut",
+        "type": "object"
+      },
+      "IngredientExpired": {
+        "additionalProperties": false,
+        "properties": {
+          "lot_id": {
+            "format": "uuid",
+            "title": "Lot Id",
+            "type": "string"
+          },
+          "quantity": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Quantity"
+          },
+          "reason": {
+            "maxLength": 500,
+            "minLength": 3,
+            "title": "Reason",
+            "type": "string"
+          },
+          "type": {
+            "const": "INGREDIENT_EXPIRED",
+            "default": "INGREDIENT_EXPIRED",
+            "title": "Type",
+            "type": "string"
+          },
+          "unit": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Unit"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "lot_id",
+          "reason"
+        ],
+        "title": "IngredientExpired",
+        "type": "object"
+      },
+      "InventoryAdjusted": {
+        "additionalProperties": false,
+        "properties": {
+          "direction": {
+            "enum": [
+              "add",
+              "remove"
+            ],
+            "title": "Direction",
+            "type": "string"
+          },
+          "lot_id": {
+            "format": "uuid",
+            "title": "Lot Id",
+            "type": "string"
+          },
+          "quantity": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "title": "Quantity"
+          },
+          "reason": {
+            "maxLength": 500,
+            "minLength": 3,
+            "title": "Reason",
+            "type": "string"
+          },
+          "type": {
+            "const": "INVENTORY_ADJUSTED",
+            "default": "INVENTORY_ADJUSTED",
+            "title": "Type",
+            "type": "string"
+          },
+          "unit": {
+            "$ref": "#/components/schemas/Unit"
+          }
+        },
+        "required": [
+          "lot_id",
+          "direction",
+          "quantity",
+          "unit",
+          "reason"
+        ],
+        "title": "InventoryAdjusted",
         "type": "object"
       },
       "Liveness": {
@@ -108,6 +836,183 @@
           "runtime"
         ],
         "title": "Liveness",
+        "type": "object"
+      },
+      "LotOut": {
+        "properties": {
+          "base_unit": {
+            "$ref": "#/components/schemas/Unit"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "donation_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Donation Id"
+          },
+          "expires_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expires At"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "ingredient_id": {
+            "format": "uuid",
+            "title": "Ingredient Id",
+            "type": "string"
+          },
+          "initial_quantity_base": {
+            "title": "Initial Quantity Base",
+            "type": "string"
+          },
+          "quantity_base": {
+            "title": "Quantity Base",
+            "type": "string"
+          },
+          "reported_quantity": {
+            "title": "Reported Quantity",
+            "type": "string"
+          },
+          "reported_unit": {
+            "$ref": "#/components/schemas/Unit"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "created_at",
+          "ingredient_id",
+          "reported_quantity",
+          "reported_unit",
+          "initial_quantity_base",
+          "quantity_base",
+          "base_unit",
+          "status"
+        ],
+        "title": "LotOut",
+        "type": "object"
+      },
+      "OrgOut": {
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "slug": {
+            "title": "Slug",
+            "type": "string"
+          },
+          "state_version": {
+            "title": "State Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "slug",
+          "name",
+          "state_version"
+        ],
+        "title": "OrgOut",
+        "type": "object"
+      },
+      "PreparationCapacityChanged": {
+        "additionalProperties": false,
+        "properties": {
+          "active": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Active"
+          },
+          "available_hours": {
+            "anyOf": [
+              {
+                "maximum": 24.0,
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Available Hours"
+          },
+          "capacity_portions_per_hour": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Capacity Portions Per Hour"
+          },
+          "reason": {
+            "maxLength": 500,
+            "minLength": 3,
+            "title": "Reason",
+            "type": "string"
+          },
+          "team_id": {
+            "format": "uuid",
+            "title": "Team Id",
+            "type": "string"
+          },
+          "type": {
+            "const": "PREPARATION_CAPACITY_CHANGED",
+            "default": "PREPARATION_CAPACITY_CHANGED",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "team_id",
+          "reason"
+        ],
+        "title": "PreparationCapacityChanged",
         "type": "object"
       },
       "ProbeCreate": {
@@ -156,6 +1061,92 @@
         "title": "ProbeOut",
         "type": "object"
       },
+      "StockOut": {
+        "properties": {
+          "available_base": {
+            "title": "Available Base",
+            "type": "string"
+          },
+          "available_display": {
+            "title": "Available Display",
+            "type": "string"
+          },
+          "base_unit": {
+            "$ref": "#/components/schemas/Unit"
+          },
+          "earliest_expiry": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Earliest Expiry"
+          },
+          "expiring_within_48h_base": {
+            "title": "Expiring Within 48H Base",
+            "type": "string"
+          },
+          "ingredient_id": {
+            "format": "uuid",
+            "title": "Ingredient Id",
+            "type": "string"
+          },
+          "ingredient_name": {
+            "title": "Ingredient Name",
+            "type": "string"
+          },
+          "lots_available": {
+            "title": "Lots Available",
+            "type": "integer"
+          },
+          "lots_unusable": {
+            "title": "Lots Unusable",
+            "type": "integer"
+          },
+          "pledged_base": {
+            "title": "Pledged Base",
+            "type": "string"
+          }
+        },
+        "required": [
+          "ingredient_id",
+          "ingredient_name",
+          "base_unit",
+          "available_base",
+          "pledged_base",
+          "expiring_within_48h_base",
+          "available_display",
+          "lots_available",
+          "lots_unusable",
+          "earliest_expiry"
+        ],
+        "title": "StockOut",
+        "type": "object"
+      },
+      "Unit": {
+        "enum": [
+          "g",
+          "kg",
+          "oz",
+          "lb",
+          "ml",
+          "l",
+          "tsp",
+          "tbsp",
+          "cup",
+          "fl_oz",
+          "qt",
+          "gal",
+          "each",
+          "portion"
+        ],
+        "title": "Unit",
+        "type": "string"
+      },
       "ValidationError": {
         "properties": {
           "ctx": {
@@ -195,6 +1186,34 @@
         ],
         "title": "ValidationError",
         "type": "object"
+      },
+      "VolunteerUnavailable": {
+        "additionalProperties": false,
+        "properties": {
+          "reason": {
+            "maxLength": 500,
+            "minLength": 3,
+            "title": "Reason",
+            "type": "string"
+          },
+          "type": {
+            "const": "VOLUNTEER_UNAVAILABLE",
+            "default": "VOLUNTEER_UNAVAILABLE",
+            "title": "Type",
+            "type": "string"
+          },
+          "volunteer_id": {
+            "format": "uuid",
+            "title": "Volunteer Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "volunteer_id",
+          "reason"
+        ],
+        "title": "VolunteerUnavailable",
+        "type": "object"
       }
     },
     "securitySchemes": {
@@ -206,10 +1225,594 @@
   },
   "info": {
     "title": "CORNUCOPIA API",
-    "version": "0.1.0"
+    "version": "0.2.0"
   },
   "openapi": "3.1.0",
   "paths": {
+    "/api/v1/audit": {
+      "get": {
+        "operationId": "audit_api_v1_audit_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 100,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/AuditOut"
+                  },
+                  "title": "Response Audit Api V1 Audit Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Audit",
+        "tags": [
+          "operations"
+        ]
+      }
+    },
+    "/api/v1/events": {
+      "get": {
+        "operationId": "list_events_api_v1_events_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 100,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/EventOut"
+                  },
+                  "title": "Response List Events Api V1 Events Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Events",
+        "tags": [
+          "operations"
+        ]
+      },
+      "post": {
+        "operationId": "submit_event_api_v1_events_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "x-cornucopia-actor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Cornucopia-Actor"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EventIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IngestOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Submit Event",
+        "tags": [
+          "operations"
+        ]
+      }
+    },
+    "/api/v1/events/{event_id}": {
+      "get": {
+        "operationId": "get_event_api_v1_events__event_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "event_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Event Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Event",
+        "tags": [
+          "operations"
+        ]
+      }
+    },
+    "/api/v1/inventory/donations": {
+      "get": {
+        "operationId": "donations_api_v1_inventory_donations_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/DonationOut"
+                  },
+                  "title": "Response Donations Api V1 Inventory Donations Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Donations",
+        "tags": [
+          "operations"
+        ]
+      }
+    },
+    "/api/v1/inventory/lots": {
+      "get": {
+        "operationId": "lots_api_v1_inventory_lots_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/LotOut"
+                  },
+                  "title": "Response Lots Api V1 Inventory Lots Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Lots",
+        "tags": [
+          "operations"
+        ]
+      }
+    },
+    "/api/v1/inventory/summary": {
+      "get": {
+        "operationId": "summary_api_v1_inventory_summary_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/StockOut"
+                  },
+                  "title": "Response Summary Api V1 Inventory Summary Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Summary",
+        "tags": [
+          "operations"
+        ]
+      }
+    },
+    "/api/v1/organization": {
+      "get": {
+        "operationId": "get_org_api_v1_organization_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrgOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Org",
+        "tags": [
+          "operations"
+        ]
+      }
+    },
+    "/api/v1/resources/{kind}": {
+      "get": {
+        "operationId": "list_resources_api_v1_resources__kind__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "kind",
+            "required": true,
+            "schema": {
+              "title": "Kind",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "additionalProperties": true,
+                    "type": "object"
+                  },
+                  "title": "Response List Resources Api V1 Resources  Kind  Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Resources",
+        "tags": [
+          "operations"
+        ]
+      },
+      "post": {
+        "operationId": "create_resource_api_v1_resources__kind__post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "kind",
+            "required": true,
+            "schema": {
+              "title": "Kind",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-cornucopia-actor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Cornucopia-Actor"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Create Resource Api V1 Resources  Kind  Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Create Resource",
+        "tags": [
+          "operations"
+        ]
+      }
+    },
+    "/api/v1/resources/{kind}/{row_id}": {
+      "delete": {
+        "operationId": "delete_resource_api_v1_resources__kind___row_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "kind",
+            "required": true,
+            "schema": {
+              "title": "Kind",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "row_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Row Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-cornucopia-actor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Cornucopia-Actor"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Delete Resource",
+        "tags": [
+          "operations"
+        ]
+      },
+      "patch": {
+        "operationId": "update_resource_api_v1_resources__kind___row_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "kind",
+            "required": true,
+            "schema": {
+              "title": "Kind",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "row_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Row Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-cornucopia-actor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Cornucopia-Actor"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Update Resource Api V1 Resources  Kind   Row Id  Patch",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Update Resource",
+        "tags": [
+          "operations"
+        ]
+      }
+    },
     "/api/v1/system/probes": {
       "get": {
         "operationId": "list_probes_api_v1_system_probes_get",

@@ -49,6 +49,28 @@ async function call<T>(path: string, init: RequestInit = {}): Promise<T> {
   return (await res.json()) as T;
 }
 
+/** Raw pass-through used by the /api/ops proxy (status codes preserved). */
+export async function forward(method: string, path: string, body?: string): Promise<Response> {
+  const { baseUrl, token } = config();
+  const headers = new Headers({ Accept: "application/json" });
+  if (token) headers.set("Authorization", `Bearer ${token}`);
+  if (body !== undefined) headers.set("Content-Type", "application/json");
+  // Phase 2: one shared operator identity asserted by this trusted server.
+  // Per-operator sign-in replaces this in Phase 6/8.
+  headers.set("X-Cornucopia-Actor", process.env.CORNUCOPIA_ACTOR ?? "operator:console");
+  try {
+    return await fetch(`${baseUrl}${path}`, {
+      method,
+      headers,
+      body,
+      cache: "no-store",
+      signal: AbortSignal.timeout(30_000),
+    });
+  } catch {
+    return new Response(JSON.stringify({ error: "backend unreachable" }), { status: 502 });
+  }
+}
+
 export const api = {
   liveness: () => call<Liveness>("/health"),
   dbHealth: () => call<DbHealth>("/health/db"),

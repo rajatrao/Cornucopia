@@ -48,6 +48,10 @@ class Settings(BaseSettings):
     supabase_url: str | None = Field(default=None, alias="SUPABASE_URL")
     supabase_secret_key: SecretStr | None = Field(default=None, alias="SUPABASE_SECRET_KEY")
 
+    # MVP: one operating organization, created on startup if missing.
+    org_slug: str = Field(default="thanksgiving-2026", alias="CORNUCOPIA_ORG_SLUG")
+    org_name: str = Field(default="Thanksgiving Community Food Rescue", alias="CORNUCOPIA_ORG_NAME")
+
     # API auth: bearer token shared with the frontend's server side only.
     api_token: SecretStr | None = Field(default=None, alias="CORNUCOPIA_API_TOKEN")
     cors_origins: list[str] = Field(default_factory=list, alias="CORNUCOPIA_CORS_ORIGINS")
