@@ -1,63 +1,191 @@
-# CORNUCOPIA
+<div align="center">
 
-> When resources change, the feast goes on.
+# 🌽 CORNUCOPIA
 
-CORNUCOPIA is an autonomous resource compiler built for Fly.io Hacksgiving 2026. It turns unpredictable donations, inventory, preparation capacity, dietary restrictions and delivery commitments into executable plans. When reality changes, its agent works out what is affected, computes a replacement plan, and asks a human to approve it before anything is committed. We call this **reality recompilation**.
+### When resources change, the feast goes on.
 
-- The agent runs inside a **Fly.io Sprite**.
-- Data lives in **Supabase** and is reached only through the official **Sprites Supabase Database connector**. The Supabase key never touches the Sprite.
-- The web UI is a separate **Next.js** app hosted on **Vercel**: https://cornucopia-delta.vercel.app (sign-in required).
-- No paid LLM is involved. Decisions come from deterministic code, NetworkX, OR-Tools CP-SAT and LangGraph.
+**An autonomous resource compiler.** A persistent agent on a [Fly.io Sprite](https://fly.io/sprites) turns donations, inventory, kitchen capacity, dietary rules and delivery routes into an executable plan, and recompiles that plan when reality changes. A human approves every consequential change.
 
-## Status
+[**Live demo**](https://cornucopia-delta.vercel.app) · [Demo script](DEMO_SCRIPT.md) · [Architecture](ARCHITECTURE.md) · [Agent workflow](AGENT_WORKFLOW.md) · [Optimizer](OPTIMIZATION_ENGINE.md)
 
-| Phase | Scope | State |
-|---|---|---|
-| 0 | Platform discovery, architecture | Done |
-| 1 | Foundation, Supabase connector, migrations, frontend link | Done |
-| 2 | Domain model, units, operational event journal, resource UI | Done |
-| 3 | Deterministic resource compiler, dependency graph, compiler UI | Done |
-| 4 | OR-Tools CP-SAT recovery optimizer, diagnosis, optimizer UI | Done |
-| 5 | LangGraph agent on the Sprite, Supabase checkpointer, leases, execution history | Done |
-| 6 | Operator sign-in, versioned approvals, atomic plan commits, transactional outbox | Done |
-| 7 | Command Center, Reality Recompilation (React Flow), Approval Center, Simulation Lab | Done |
-| 8 | Outbox delivery, worker liveness, health checks, JSON logs, restart drills, deployment | Done (live on Vercel + Sprite) |
-| 9 | Demonstration organization, two scenarios, `DEMO_SCRIPT.md` | Done |
+Built for **Fly.io Hacksgiving 2026**
 
-## Repository map
+</div>
 
-| Path | What it is |
+---
+
+## The problem
+
+A Thanksgiving food-rescue operation has promised **500 meals** to a shelter, a senior center and a family pantry. At 2 p.m. the rice donation is cancelled.
+
+Which meals are still possible? Can another ingredient stand in for the rice without breaking the senior center's dairy-free requirement? Is there enough kitchen time and room on the delivery routes? And who signs off before anything changes?
+
+CORNUCOPIA answers those questions in seconds, proves its answer, and waits for a human.
+
+## What it does: reality recompilation
+
+```mermaid
+flowchart LR
+    A[Operator reports<br/>a change] --> B[(Supabase<br/>event journal)]
+    B --> C{{Agent on the<br/>Fly.io Sprite}}
+    C --> D[Dependency<br/>impact · NetworkX]
+    D --> E[Recovery plan<br/>OR-Tools CP-SAT]
+    E --> F[Independent<br/>validator]
+    F -->|verified| G[Approval request]
+    F -->|not enough<br/>resources| H[Escalation with<br/>exact shortfall]
+    G --> I((Human<br/>approves))
+    I --> J[Atomic commit<br/>+ audit + outbox]
+```
+
+1. **Journal.** An operator reports a fact, such as "rice donation cancelled". It is recorded idempotently, and its effect on inventory is applied in the same transaction.
+2. **Understand.** The agent traces what depends on the changed resource (donation → lot → ingredient → recipe → batch → meal → commitment → route).
+3. **Recompile.** A CP-SAT model searches for the best recovery. It may use substitutions, reroute meals and rebalance kitchen load, but it never breaks a diet, over-draws stock or exceeds capacity.
+4. **Prove.** A separate validator recomputes every quantity. A plan is labelled feasible only if the validator agrees.
+5. **Ask.** The proposal is bound to its fingerprint and to the exact operational state it was computed against. The agent then pauses.
+6. **Commit.** After explicit approval, the database re-checks everything and commits the plan atomically, with a full audit trail. If reality changed in the meantime, the approval is refused as stale.
+
+When resources are genuinely insufficient, it says so and escalates, for example: *"missing Potatoes 120.0 lb after every valid substitution"*. It never invents a plan.
+
+## Try it
+
+**Live:** https://cornucopia-delta.vercel.app
+
+> **Judges:** sign-in details are provided with the submission. The `judge` account can run the whole scenario, including approvals. `judge-viewer` is read-only, so you can see an unauthorized approval being refused.
+
+Follow [`DEMO_SCRIPT.md`](DEMO_SCRIPT.md) (≈ 5 min). The short version:
+
+1. **Events** → *Donation cancelled* → pick *Rice donation* → submit.
+2. **Agent / Recompilation**: watch the agent run on the Sprite and see the affected dependency graph.
+3. **Approvals**: review the plan (500 of 500 meals, quinoa replacing rice), tick the confirmation, approve. The agent commits it.
+4. **Events** → *Ingredient expired* → *Potatoes*: the agent escalates with the exact shortfall.
+5. **Simulation**: what-if scenarios on a copy of the state; production stays untouched.
+
+## Why it runs on a Fly.io Sprite
+
+The agent is a long-lived, stateful process that has to survive restarts. A Sprite provides a persistent Linux VM, services that come back after a crash or a cold boot, and the Supabase connector. The connector means the database key never lives on the machine.
+
+| Concern | How CORNUCOPIA handles it |
 |---|---|
-| `backend/` | FastAPI service and the agent runtime (Python 3.12+, managed with `uv`) |
-| `frontend/` | Next.js command center (TypeScript strict, Tailwind) |
-| `supabase/migrations/` | Generated SQL migrations, applied with the Supabase CLI |
-| `db/` | Alembic config and hand-written SQL (grants, RLS, RPC functions) |
-| `contracts/openapi.json` | Shared API contract. Frontend types are generated from it |
-| `scripts/` | Deploy, migration generation and verification scripts |
-| `docs/` | Phase reports and screenshots |
+| Runtime | API and agent run as two Sprite services (`sprite-env services`); the agent works independently of the web UI |
+| Persistence | Supabase through the **official Sprites Supabase Database connector**: REST and RPC only, credentials injected by the Fly gateway |
+| Durability | A custom LangGraph checkpointer over the connector. The agent checkpoints after every step. |
+| Crash recovery | Lease-based work claiming with fencing tokens. Kill the worker mid-run and another resumes from the last checkpoint without duplicating effects. |
+| Staying awake | The Sprites Tasks API holds the Sprite active only while an execution runs |
 
-## Quick start (local)
+## Architecture
+
+```mermaid
+flowchart TB
+    subgraph Browser
+      UI[Operator]
+    end
+    subgraph Vercel
+      NX[Next.js 16 command center<br/>server-side API client · HttpOnly session]
+    end
+    subgraph Sprite["Fly.io Sprite"]
+      API[FastAPI service<br/>auth · validation · read models]
+      W[Agent worker service<br/>LangGraph · CP-SAT · NetworkX]
+    end
+    GW[Sprites connector gateway<br/>injects the Supabase key]
+    DB[(Supabase Postgres<br/>schema cornucopia)]
+    UI --> NX -->|token + operator session| API
+    API --> GW
+    W --> GW
+    GW --> DB
+```
+
+- **No paid LLM.** Every decision is deterministic code: Pydantic schemas, NetworkX, OR-Tools CP-SAT, and LangGraph for orchestration.
+- **All writes are database functions.** Multi-row changes (event ingest, approvals, plan commits) are single PL/pgSQL transactions. Direct table writes are revoked.
+- **Append-only history.** The event journal, audit log, approval decisions, checkpoints and optimization runs cannot be updated or deleted.
+
+## Tech stack
+
+| Layer | Technology |
+|---|---|
+| Agent runtime | Fly.io Sprite, LangGraph, custom Supabase checkpointer |
+| Optimization | Google OR-Tools CP-SAT (six-stage lexicographic objectives), NetworkX |
+| API | Python 3.13, FastAPI, Pydantic v2, httpx |
+| Data | Supabase Postgres via the Sprites connector; SQLAlchemy + Alembic generate migrations, the Supabase CLI applies them |
+| Frontend | Next.js 16, React 19, TypeScript (strict), Tailwind CSS 4, React Flow, Recharts |
+| Testing | pytest, Playwright, ruff, mypy (strict) |
+
+## Repository layout
+
+```
+backend/            FastAPI service and the agent
+  cornucopia/
+    agent/          LangGraph graph, tools, checkpointer, supervisor
+    compiler/       deterministic planner, calculators, validator
+    optimizer/      CP-SAT model, diagnosis, candidate comparison
+    depgraph/       NetworkX dependency graph and impact analysis
+    simulation/     isolated what-if scenarios
+    api/            HTTP routes
+    persistence/    connector client, repositories, models
+frontend/           Next.js command center
+supabase/migrations generated SQL migrations (applied with the Supabase CLI)
+db/                 Alembic config and hand-written SQL (RPCs, triggers, privileges)
+scripts/            deploy, reset, seed, scenarios, migration tooling
+```
+
+## Running it yourself
+
+You need a Fly.io Sprite, a Supabase project with the Sprites Supabase connector configured, the `sprite`, `supabase` and `uv` CLIs, and Node 20+.
 
 ```bash
-cd backend && uv sync && uv run pytest
+supabase link --project-ref <your-project-ref> && supabase db push --remote && supabase config push
 ```
 
 ```bash
-cd frontend && npm install && npm run build
-```
-
-Run the frontend against the Sprite-hosted API through a port forward:
-
-```bash
-sprite proxy -s cornucopia 18000:8000
+SUPABASE_GATEWAY_URL=https://api.sprites.dev/v1/gateway/supabase/<connection-id> scripts/deploy_sprite.sh
 ```
 
 ```bash
-cd frontend && npx next start -p 3100
+sprite exec -s cornucopia -- bash -c 'cd /home/sprite/cornucopia/current/backend && .venv/bin/python -m cornucopia.admin create-operator --username admin --name Admin --role admin --generate-password'
 ```
 
-`frontend/.env.local` (gitignored) needs `CORNUCOPIA_API_URL` and `CORNUCOPIA_API_TOKEN`. Sign in with an operator account (see `DEPLOYMENT.md` § Operators). The demo walk-through is in `DEMO_SCRIPT.md`.
+Then deploy `frontend/` to Vercel with `CORNUCOPIA_API_URL` and `CORNUCOPIA_API_TOKEN`. The full guide, including connector setup, is in [`DEPLOYMENT.md`](DEPLOYMENT.md) and [`CONNECTOR_SETUP.md`](CONNECTOR_SETUP.md).
+
+**Resetting the demo** is manual and never automatic:
+
+```bash
+scripts/reset_demo.sh
+```
+
+It points the Sprite at a fresh demonstration organization, recreates the operator accounts and reloads the sample data in about 1–2 minutes. Nothing is deleted; earlier runs keep their history.
+
+## Testing
+
+```bash
+cd backend && uv run pytest
+```
+
+```bash
+cd frontend && npx playwright test
+```
+
+- **Backend:** 111 tests. They cover unit conversions, the planner and validator, CP-SAT determinism, the agent's crash-and-resume, and Postgres-level approval races (stale, duplicate, unauthorized, expired and concurrent approvals).
+- **End-to-end:** 36 Playwright tests (desktop + mobile) against the live Sprite, including the full approve → commit loop.
+
+See [`TESTING.md`](TESTING.md).
+
+## Security
+
+- The Supabase secret key exists only in the Fly connector. The Sprite never holds it.
+- The API requires a service token plus a signed operator session. Roles are viewer < operator < approver < admin.
+- Sessions live in HttpOnly cookies. Page JavaScript never sees a credential.
+- Approvals are bound to plan fingerprint and state version, need explicit confirmation, and are re-verified inside the commit transaction. Refused attempts are recorded.
+
+See [`SECURITY.md`](SECURITY.md).
 
 ## Documentation
 
-`ARCHITECTURE.md`, `AGENT_WORKFLOW.md`, `OPTIMIZATION_ENGINE.md`, `IMPLEMENTATION_PLAN.md`, `DEPLOYMENT.md`, `CONNECTOR_SETUP.md`, `DATABASE_SCHEMA.md`, `SECURITY.md`, `TESTING.md`, `DEMO_SCRIPT.md`, `CHANGELOG.md`, `JOURNAL.md`.
+| Document | Contents |
+|---|---|
+| [ARCHITECTURE.md](ARCHITECTURE.md) | runtime topology, persistence model, security model |
+| [AGENT_WORKFLOW.md](AGENT_WORKFLOW.md) | the 17-node graph, durability, recovery after restarts |
+| [OPTIMIZATION_ENGINE.md](OPTIMIZATION_ENGINE.md) | compiler, CP-SAT model, objectives, diagnosis, determinism |
+| [DATABASE_SCHEMA.md](DATABASE_SCHEMA.md) | tables, constraints, RPC functions |
+| [DEPLOYMENT.md](DEPLOYMENT.md) / [CONNECTOR_SETUP.md](CONNECTOR_SETUP.md) | step-by-step deployment |
+| [DEMO_SCRIPT.md](DEMO_SCRIPT.md) | the 5-minute walkthrough |
+| [TESTING.md](TESTING.md) / [SECURITY.md](SECURITY.md) | verification and threat model |
+| [JOURNAL.md](JOURNAL.md) / [CHANGELOG.md](CHANGELOG.md) | how it was built, phase by phase |

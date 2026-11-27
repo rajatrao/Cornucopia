@@ -2,7 +2,7 @@
 
 Open **https://cornucopia-delta.vercel.app** and sign in.
 
-**Setup (already done on the Sprite).** The Sprite runs the organization **Thanksgiving Community Food Rescue (demonstration data)**, slug `thanksgiving-2026-demo`. It was seeded through the public API by `scripts/seed_sample.py --label "" --quinoa-lb 130`:
+**Setup (already done on the Sprite).** The Sprite runs the organization **Thanksgiving Community Food Rescue (demonstration data)**. Its slug is `thanksgiving-2026-demo-<timestamp>`, a new one for each reset. It was seeded through the public API by `scripts/seed_sample.py --label "" --quinoa-lb 130`:
 
 | Resource | Quantity |
 |---|---|
@@ -18,10 +18,10 @@ Open **https://cornucopia-delta.vercel.app** and sign in.
 
 The plate is rice pilaf, mashed potatoes and roasted carrots. Substitution rule: quinoa may replace rice 1:1 in the pilaf. Nothing about the outcome is pre-computed. Everything below is decided live by the agent, the CP-SAT optimizer and the validator.
 
-To reset, deploy a fresh organization slug and seed it again. See `DEPLOYMENT.md`.
+To reset to this starting point, run `scripts/reset_demo.sh`. The reset is manual and never automatic. It takes about 1–2 minutes and keeps the history of earlier runs.
 
 ## 1. The operation (Command Center, `/`)
-- Sign in as an approver (for example `raj`).
+- Sign in as an approver: `judge` (details provided with the submission).
 - The tiles show **500 committed**, **500 feasible right now**, the agent online, and no pending approvals.
 - The inventory health chart shows stock against need for every ingredient.
 
@@ -38,7 +38,7 @@ To reset, deploy a fresh organization slug and seed it again. See `DEPLOYMENT.md
 ## 4. Human approval (Approval Center, `/approvals`)
 - The proposal shows plan vN, its fingerprint, the state version it was computed against, the commitments, and the changes (substitution, allocations).
 - **Approve and commit** stays disabled until the confirmation box is ticked.
-- Optional: sign in as an `operator`-role account and try to approve. The attempt is refused as *unauthorized* and recorded in the decision history.
+- Optional: sign in as `judge-viewer` (read-only) and try to approve. The attempt is refused as *unauthorized* and recorded in the decision history.
 - Confirm. The worker resumes the paused graph. `commit_approved_plan` re-verifies the approval, fingerprint, state version and lease, then applies batches, stock reservations, routing and planned meals in one transaction. The audit log attributes it to the approver, and the outbox emits a notification.
 - The Command Center now shows **Committed plan: 500 (plan vN)** and a notification "Plan vN committed by raj: 500 of 500 meals".
 

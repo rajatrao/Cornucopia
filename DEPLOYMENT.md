@@ -106,6 +106,14 @@ sprite exec -s cornucopia -- bash -c 'cd /home/sprite/cornucopia/current/backend
 
 Roles: `viewer` (read), `operator` (report events, edit resources, run the optimizer), `approver` (also decide approvals), `admin`.
 
+## Resetting the demo (manual)
+
+```bash
+scripts/reset_demo.sh
+```
+
+The script points the Sprite at a fresh demonstration organization. It recreates `raj`, `judge` and `judge-viewer` with the passwords in the gitignored `.env.operators`, then seeds the Thanksgiving data. Nothing is deleted.
+
 ## 3. Public API URL
 
 The API requires the service token on every route except `/health`, and an operator session on operational routes. With that in place the Sprite URL can be public so a hosted frontend can reach it:
