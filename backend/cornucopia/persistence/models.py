@@ -374,6 +374,9 @@ class Commitment(Base):
     delivery_id: Mapped[uuid.UUID | None] = _fk("deliveries", nullable=True, ondelete="SET NULL")
     status: Mapped[str] = mapped_column(String(16), nullable=False, server_default="active")
     version: Mapped[int] = mapped_column(Integer, nullable=False, server_default="1")
+    # set only by an approved plan commit (never silently)
+    planned_meals: Mapped[int | None] = mapped_column(Integer)
+    committed_plan_version_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True))
     created_at: Mapped[datetime] = _created_at()
     updated_at: Mapped[datetime] = _updated_at()
     __table_args__ = (
@@ -415,6 +418,7 @@ class OperationalState(Base):
         UUID(as_uuid=True), ForeignKey(f"{SCHEMA}.organizations.id"), primary_key=True
     )
     version: Mapped[int] = mapped_column(BigInteger, nullable=False, server_default="0")
+    committed_plan_version_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True))
     updated_at: Mapped[datetime] = _updated_at()
 
 
@@ -631,3 +635,165 @@ class AgentCheckpointWrite(Base):
     value: Mapped[str] = mapped_column(Text, nullable=False)  # base64
     task_path: Mapped[str] = mapped_column(Text, nullable=False, server_default="")
     created_at: Mapped[datetime] = _created_at()
+
+
+# --------------------------------------------------------------------------
+# Phase 6: operators, versioned plans, approvals, committed plan, outbox
+# --------------------------------------------------------------------------
+
+
+class Operator(Base):
+    """Authorized operator. Passwords are argon2id hashes, never plaintext."""
+
+    __tablename__ = "operators"
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    organization_id: Mapped[uuid.UUID] = _org_fk()
+    username: Mapped[str] = mapped_column(String(64), nullable=False)
+    display_name: Mapped[str] = mapped_column(String(120), nullable=False)
+    role: Mapped[str] = mapped_column(String(16), nullable=False)
+    password_hash: Mapped[str] = mapped_column(Text, nullable=False)
+    active: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("true"))
+    created_at: Mapped[datetime] = _created_at()
+    updated_at: Mapped[datetime] = _updated_at()
+    __table_args__ = (
+        UniqueConstraint("organization_id", "username"),
+        CheckConstraint("role in ('viewer','operator','approver','admin')", name="role"),
+        CheckConstraint("username ~ '^[a-z0-9._-]{3,64}$'", name="username_format"),
+    )
+
+
+class PlanVersion(Base):
+    """An immutable version of the organization's operational plan."""
+
+    __tablename__ = "plan_versions"
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    organization_id: Mapped[uuid.UUID] = _org_fk()
+    version_number: Mapped[int] = mapped_column(Integer, nullable=False)
+    optimization_run_id: Mapped[uuid.UUID] = _fk("optimization_runs")
+    execution_id: Mapped[uuid.UUID | None] = _fk("agent_executions", nullable=True)
+    fingerprint: Mapped[str] = mapped_column(String(64), nullable=False)
+    state_version: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    verdict: Mapped[str] = mapped_column(String(24), nullable=False)
+    plan: Mapped[dict[str, object]] = mapped_column(JSONB, nullable=False)
+    summary: Mapped[dict[str, object]] = mapped_column(JSONB, nullable=False)
+    status: Mapped[str] = mapped_column(String(16), nullable=False, server_default="proposed")
+    committed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    committed_state_version: Mapped[int | None] = mapped_column(BigInteger)
+    created_at: Mapped[datetime] = _created_at()
+    __table_args__ = (
+        UniqueConstraint("organization_id", "version_number"),
+        CheckConstraint(
+            "status in ('proposed','committed','superseded','rejected','stale','expired')",
+            name="status",
+        ),
+        CheckConstraint("verdict in ('verified_feasible','verified_partial')", name="verified"),
+    )
+
+
+class PlanChange(Base):
+    __tablename__ = "plan_changes"
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    plan_version_id: Mapped[uuid.UUID] = _fk("plan_versions")
+    kind: Mapped[str] = mapped_column(String(24), nullable=False)
+    ref_id: Mapped[str] = mapped_column(String(120), nullable=False)
+    label: Mapped[str] = mapped_column(String(300), nullable=False)
+    field: Mapped[str] = mapped_column(String(40), nullable=False)
+    before: Mapped[str] = mapped_column(Text, nullable=False)
+    after: Mapped[str] = mapped_column(Text, nullable=False)
+
+
+class ApprovalRequest(Base):
+    __tablename__ = "approval_requests"
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    organization_id: Mapped[uuid.UUID] = _org_fk()
+    plan_version_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey(f"{SCHEMA}.plan_versions.id"), nullable=False, unique=True
+    )
+    execution_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey(f"{SCHEMA}.agent_executions.id"), unique=True
+    )
+    fingerprint: Mapped[str] = mapped_column(String(64), nullable=False)
+    state_version: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    status: Mapped[str] = mapped_column(String(16), nullable=False, server_default="pending")
+    escalated: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("false"))
+    requested_by: Mapped[str] = mapped_column(String(120), nullable=False)
+    report: Mapped[dict[str, object]] = mapped_column(JSONB, nullable=False)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    decided_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    committed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    status_reason: Mapped[str | None] = mapped_column(String(500))
+    created_at: Mapped[datetime] = _created_at()
+    updated_at: Mapped[datetime] = _updated_at()
+    __table_args__ = (
+        CheckConstraint(
+            "status in ('pending','approved','rejected','expired','stale','committed')",
+            name="status",
+        ),
+        Index("ix_approval_requests_org_status", "organization_id", "status"),
+    )
+
+
+class ApprovalDecision(Base):
+    """Every decision attempt, including refused ones (unauthorized, stale...)."""
+
+    __tablename__ = "approval_decisions"
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    approval_request_id: Mapped[uuid.UUID] = _fk("approval_requests")
+    operator_id: Mapped[uuid.UUID | None] = _fk("operators", nullable=True)
+    operator_username: Mapped[str] = mapped_column(String(64), nullable=False)
+    decision: Mapped[str] = mapped_column(String(8), nullable=False)
+    accepted: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    refusal_reason: Mapped[str | None] = mapped_column(String(300))
+    fingerprint_presented: Mapped[str] = mapped_column(String(64), nullable=False)
+    state_version_presented: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    confirmed: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    reason: Mapped[str | None] = mapped_column(String(500))
+    created_at: Mapped[datetime] = _created_at()
+    __table_args__ = (CheckConstraint("decision in ('approve','reject')", name="decision"),)
+
+
+class PlanRouting(Base):
+    """Committed delivery routing of commitments (per plan version)."""
+
+    __tablename__ = "plan_routing"
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    organization_id: Mapped[uuid.UUID] = _org_fk()
+    plan_version_id: Mapped[uuid.UUID] = _fk("plan_versions")
+    commitment_id: Mapped[uuid.UUID] = _fk("commitments")
+    delivery_id: Mapped[uuid.UUID] = _fk("deliveries")
+    meals: Mapped[int] = mapped_column(Integer, nullable=False)
+    created_at: Mapped[datetime] = _created_at()
+    __table_args__ = (CheckConstraint("meals > 0", name="meals_pos"),)
+
+
+class LotAllocation(Base):
+    """Committed reservation of stock for a plan version."""
+
+    __tablename__ = "lot_allocations"
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    organization_id: Mapped[uuid.UUID] = _org_fk()
+    plan_version_id: Mapped[uuid.UUID] = _fk("plan_versions")
+    lot_id: Mapped[uuid.UUID] = _fk("inventory_lots")
+    ingredient_id: Mapped[uuid.UUID] = _fk("ingredients")
+    quantity_base: Mapped[Decimal] = _qty()
+    released_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = _created_at()
+    __table_args__ = (CheckConstraint("quantity_base > 0", name="qty_pos"),)
+
+
+class OutboxMessage(Base):
+    """Transactional outbox: written in the same transaction as the change."""
+
+    __tablename__ = "outbox_messages"
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    organization_id: Mapped[uuid.UUID] = _org_fk()
+    topic: Mapped[str] = mapped_column(String(64), nullable=False)
+    payload: Mapped[dict[str, object]] = mapped_column(JSONB, nullable=False)
+    attempts: Mapped[int] = mapped_column(Integer, nullable=False, server_default="0")
+    next_attempt_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+    delivered_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    last_error: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[datetime] = _created_at()
+    __table_args__ = (Index("ix_outbox_messages_pending", "delivered_at", "next_attempt_at"),)
