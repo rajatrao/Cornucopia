@@ -1,5 +1,7 @@
 # Demo script (about 5 minutes)
 
+Open **https://cornucopia-delta.vercel.app** and sign in.
+
 **Setup (already done on the Sprite).** The Sprite runs the organization **Thanksgiving Community Food Rescue (demonstration data)**, slug `thanksgiving-2026-demo`. It was seeded through the public API by `scripts/seed_sample.py --label "" --quinoa-lb 130`:
 
 | Resource | Quantity |

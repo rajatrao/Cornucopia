@@ -6,7 +6,7 @@ CORNUCOPIA is an autonomous resource compiler built for Fly.io Hacksgiving 2026.
 
 - The agent runs inside a **Fly.io Sprite**.
 - Data lives in **Supabase** and is reached only through the official **Sprites Supabase Database connector**. The Supabase key never touches the Sprite.
-- The web UI is a separate **Next.js** app hosted on **Vercel**.
+- The web UI is a separate **Next.js** app hosted on **Vercel**: https://cornucopia-delta.vercel.app (sign-in required).
 - No paid LLM is involved. Decisions come from deterministic code, NetworkX, OR-Tools CP-SAT and LangGraph.
 
 ## Status
@@ -21,7 +21,7 @@ CORNUCOPIA is an autonomous resource compiler built for Fly.io Hacksgiving 2026.
 | 5 | LangGraph agent on the Sprite, Supabase checkpointer, leases, execution history | Done |
 | 6 | Operator sign-in, versioned approvals, atomic plan commits, transactional outbox | Done |
 | 7 | Command Center, Reality Recompilation (React Flow), Approval Center, Simulation Lab | Done |
-| 8 | Outbox delivery, worker liveness, health checks, JSON logs, restart drills, deployment | Done (Vercel deploy needs your Vercel login, see `DEPLOYMENT.md`) |
+| 8 | Outbox delivery, worker liveness, health checks, JSON logs, restart drills, deployment | Done (live on Vercel + Sprite) |
 | 9 | Demonstration organization, two scenarios, `DEMO_SCRIPT.md` | Done |
 
 ## Repository map

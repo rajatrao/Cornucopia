@@ -244,3 +244,7 @@ Recommendation: proceed to Phase 6.
 - No sign-in rate limiting yet.
 - A demo video is not recorded yet (requested for after development).
 - Gateway latency (~0.3 s per call) keeps an agent execution around 10–20 s.
+
+### Addendum: Vercel deployment (2026-11-27)
+- `vercel link` created project `cornucopia`. Production variables `CORNUCOPIA_API_URL` (the public Sprite URL) and `CORNUCOPIA_API_TOKEN` (sensitive, piped from the Sprite without printing) are set, and `vercel deploy --prod` is live at https://cornucopia-delta.vercel.app.
+- Verified in a browser: sign-in, Command Center (500/500, agent online), Recompilation, Approvals, Simulation and Agent pages all load against the Sprite through the public URL.

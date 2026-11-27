@@ -124,6 +124,8 @@ Health checks:
 
 ## 4. Frontend on Vercel
 
+Live at **https://cornucopia-delta.vercel.app** (project `cornucopia`, deployed with `vercel deploy --prod` from `frontend/`). It talks to the public Sprite URL server-side.
+
 The frontend is a standard Next.js 16 app in `frontend/`. It needs two server-side environment variables, never `NEXT_PUBLIC_`:
 
 | Variable | Value |
