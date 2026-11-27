@@ -11,6 +11,7 @@ const GROUPS: { title: string; links: { href: string; label: string; icon: strin
     links: [
       { href: "/", label: "Command Center", icon: "◎" },
       { href: "/recompilation", label: "Recompilation", icon: "⟲" },
+      { href: "/executions", label: "Agent", icon: "◉" },
       { href: "/approvals", label: "Approvals", icon: "✓" },
       { href: "/events", label: "Events", icon: "⚡" },
     ],
@@ -33,7 +34,6 @@ const GROUPS: { title: string; links: { href: string; label: string; icon: strin
   {
     title: "Observe",
     links: [
-      { href: "/executions", label: "Agent", icon: "◉" },
       { href: "/history", label: "Audit", icon: "☰" },
     ],
   },
