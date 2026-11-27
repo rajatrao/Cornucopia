@@ -1,0 +1,12 @@
+# Minimal Supabase CLI config. `supabase config push` only writes the
+# properties declared here, so this file deliberately declares only the API
+# schema exposure that CORNUCOPIA needs.
+project_id = "cornucopia"
+
+[api]
+enabled = true
+# `cornucopia` must be exposed so PostgREST (and therefore the Sprites
+# Supabase connector) can serve it. public/graphql_public are Supabase defaults.
+schemas = ["public", "graphql_public", "cornucopia"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000

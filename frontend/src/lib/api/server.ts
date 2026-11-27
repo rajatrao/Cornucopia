@@ -1,0 +1,58 @@
+import "server-only";
+
+import type { components } from "./contract.gen";
+
+/**
+ * Server-side client for the CORNUCOPIA API on the Fly.io Sprite.
+ *
+ * `server-only` makes the build fail if this module is ever imported into a
+ * Client Component, so the API token can never reach the browser. Neither
+ * variable is NEXT_PUBLIC_, so Next.js never inlines them into client JS.
+ * The browser has no knowledge of Supabase or the Sprites gateway at all.
+ */
+
+export type Liveness = components["schemas"]["Liveness"];
+export type DbHealth = components["schemas"]["DbHealthOut"];
+export type Probe = components["schemas"]["ProbeOut"];
+
+export class ApiError extends Error {
+  constructor(
+    public readonly status: number,
+    message: string,
+  ) {
+    super(message);
+  }
+}
+
+function config(): { baseUrl: string; token: string | undefined } {
+  const baseUrl = process.env.CORNUCOPIA_API_URL;
+  if (!baseUrl) throw new ApiError(500, "CORNUCOPIA_API_URL is not configured");
+  return { baseUrl: baseUrl.replace(/\/$/, ""), token: process.env.CORNUCOPIA_API_TOKEN };
+}
+
+async function call<T>(path: string, init: RequestInit = {}): Promise<T> {
+  const { baseUrl, token } = config();
+  const headers = new Headers(init.headers);
+  headers.set("Accept", "application/json");
+  if (token) headers.set("Authorization", `Bearer ${token}`);
+  if (init.body) headers.set("Content-Type", "application/json");
+  const res = await fetch(`${baseUrl}${path}`, {
+    ...init,
+    headers,
+    cache: "no-store",
+    signal: AbortSignal.timeout(20_000),
+  });
+  if (!res.ok) {
+    const detail = await res.text().catch(() => "");
+    throw new ApiError(res.status, `API ${res.status} on ${path}: ${detail.slice(0, 200)}`);
+  }
+  return (await res.json()) as T;
+}
+
+export const api = {
+  liveness: () => call<Liveness>("/health"),
+  dbHealth: () => call<DbHealth>("/health/db"),
+  listProbes: () => call<Probe[]>("/api/v1/system/probes"),
+  createProbe: (note: string) =>
+    call<Probe>("/api/v1/system/probes", { method: "POST", body: JSON.stringify({ note }) }),
+};
