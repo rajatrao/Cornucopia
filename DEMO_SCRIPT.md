@@ -18,7 +18,7 @@ Open **https://cornucopia-delta.vercel.app** and sign in.
 
 The plate is rice pilaf, mashed potatoes and roasted carrots. Substitution rule: quinoa may replace rice 1:1 in the pilaf. Nothing about the outcome is pre-computed. Everything below is decided live by the agent, the CP-SAT optimizer and the validator.
 
-To reset to this starting point, run `scripts/reset_demo.sh`. The reset is manual and never automatic. It takes about 1–2 minutes and keeps the history of earlier runs.
+To return to this starting point, sign in as `judge` or `raj` and click **Reset demo** at the bottom of the sidebar (about 40 seconds; everyone signs in again afterwards), or run `scripts/reset_demo.sh`. The reset is manual and never automatic, and earlier runs keep their history.
 
 ## 1. The operation (Command Center, `/`)
 - Sign in as an approver: `judge` (details provided with the submission).

@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 
+import { DemoReset } from "@/components/demo-reset";
+
 interface Me {
   username: string;
   display_name: string;
@@ -33,6 +35,7 @@ export function OperatorMenu() {
       >
         Sign out
       </button>
+      <DemoReset role={me.role} />
     </span>
   );
 }

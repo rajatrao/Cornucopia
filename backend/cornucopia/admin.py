@@ -42,7 +42,7 @@ def main(argv: list[str] | None = None) -> int:
     settings = get_settings()
     db = build_client(settings)
     repo = SupabaseOperationsRepository(db)
-    org = repo.ensure_organization(settings.org_slug, settings.org_name)
+    org = repo.ensure_organization(*settings.active_org())
     out = repo.call(
         "create_operator",
         {

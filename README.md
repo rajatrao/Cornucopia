@@ -59,6 +59,7 @@ Follow [`DEMO_SCRIPT.md`](DEMO_SCRIPT.md) (≈ 5 min). The short version:
 3. **Approvals**: review the plan (500 of 500 meals, quinoa replacing rice), tick the confirmation, approve. The agent commits it.
 4. **Events** → *Ingredient expired* → *Potatoes*: the agent escalates with the exact shortfall.
 5. **Simulation**: what-if scenarios on a copy of the state; production stays untouched.
+6. **Reset demo** (sidebar): start over with fresh sample data.
 
 ## Why it runs on a Fly.io Sprite
 
@@ -145,13 +146,7 @@ sprite exec -s cornucopia -- bash -c 'cd /home/sprite/cornucopia/current/backend
 
 Then deploy `frontend/` to Vercel with `CORNUCOPIA_API_URL` and `CORNUCOPIA_API_TOKEN`. The full guide, including connector setup, is in [`DEPLOYMENT.md`](DEPLOYMENT.md) and [`CONNECTOR_SETUP.md`](CONNECTOR_SETUP.md).
 
-**Resetting the demo** is manual and never automatic:
-
-```bash
-scripts/reset_demo.sh
-```
-
-It points the Sprite at a fresh demonstration organization, recreates the operator accounts and reloads the sample data in about 1–2 minutes. Nothing is deleted; earlier runs keep their history.
+**Resetting the demo** is manual, never automatic. An approver or admin can click **Reset demo** at the bottom of the sidebar. It takes about 40 seconds. The deployment moves to a fresh demonstration organization, every operator account is copied over with its password unchanged, and the sample data is reloaded. Everyone then signs in again. Nothing is deleted, so earlier runs keep their history. The feature is on only when `CORNUCOPIA_DEMO_RESET_ROLE` is set. `scripts/reset_demo.sh` does the same from a terminal and also redeploys.
 
 ## Testing
 

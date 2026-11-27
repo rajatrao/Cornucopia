@@ -114,6 +114,10 @@ scripts/reset_demo.sh
 
 The script points the Sprite at a fresh demonstration organization. It recreates `raj`, `judge` and `judge-viewer` with the passwords in the gitignored `.env.operators`, then seeds the Thanksgiving data. Nothing is deleted.
 
+The same reset is available in the UI as **Reset demo** at the bottom of the sidebar. Only roles at or above `CORNUCOPIA_DEMO_RESET_ROLE` see it; `reset_demo.sh` sets that role to `approver`. With the variable unset, the button and endpoint are off.
+
+In the UI, the API creates the new organization and copies every active operator's password hash into it. It then writes the new organization to `~/.config/cornucopia/active_org.json` and loads the sample data through its own endpoints, holding the Sprite awake with the Tasks API while it works. The worker watches that file and restarts its loop for the new organization within a few seconds. A plain code redeploy (`deploy_sprite.sh` without `CORNUCOPIA_ORG_SLUG`) keeps the current organization.
+
 ## 3. Public API URL
 
 The API requires the service token on every route except `/health`, and an operator session on operational routes. With that in place the Sprite URL can be public so a hosted frontend can reach it:

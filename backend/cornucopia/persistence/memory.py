@@ -26,6 +26,7 @@ class InMemorySupabaseClient(SupabaseClient):
         self.register_rpc("health_check", _health_check)
         self.register_rpc("record_probe", _record_probe)
         self.register_rpc("ensure_organization", _ensure_organization)
+        self.register_rpc("create_operator", _create_operator)
         self.register_rpc("write_resource", _write_resource)
         self.register_rpc("ingest_event", _ingest_event)
         self.register_rpc("get_operational_snapshot", _snapshot)
@@ -141,6 +142,20 @@ def _ensure_organization(db: InMemorySupabaseClient, args: Mapping[str, Any]) ->
         {"organization_id": org["id"], "version": 0}
     )
     return org
+
+
+def _create_operator(db: InMemorySupabaseClient, args: Mapping[str, Any]) -> JSON:
+    rows = db.tables.setdefault("operators", [])
+    for r in rows:
+        same_org = r["organization_id"] == args["p_organization_id"]
+        if same_org and r["username"] == args["p_username"]:
+            r.update(display_name=args["p_display_name"], role=args["p_role"],
+                     password_hash=args["p_password_hash"], active=True)
+            return copy.deepcopy(r)
+    return db.insert("operators", [{
+        "organization_id": args["p_organization_id"], "username": args["p_username"],
+        "display_name": args["p_display_name"], "role": args["p_role"], "active": True,
+        "password_hash": args["p_password_hash"]}])[0]
 
 
 def _bump(db: InMemorySupabaseClient, org: str) -> int:

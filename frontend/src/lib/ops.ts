@@ -29,7 +29,9 @@ export async function ops<T = unknown>(path: string, init: RequestInit = {}): Pr
     headers: { "Content-Type": "application/json", ...(init.headers ?? {}) },
     cache: "no-store",
   });
-  if (res.status === 401 && typeof window !== "undefined") {
+  // During a demo reset every session goes stale on purpose; the reset
+  // dialog takes the operator to sign in once the new data is ready.
+  if (res.status === 401 && typeof window !== "undefined" && !(window as { __cnResetting?: boolean }).__cnResetting) {
     window.location.href = `/login?next=${encodeURIComponent(window.location.pathname)}`;
   }
   if (res.status === 204) return undefined as T;

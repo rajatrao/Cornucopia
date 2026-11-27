@@ -9,9 +9,12 @@ is for tests. The app never falls back from one mode to another.
 
 from __future__ import annotations
 
+import json
+import os
 from enum import StrEnum
 from functools import lru_cache
 from pathlib import Path
+from typing import Literal
 
 from pydantic import Field, SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -52,6 +55,17 @@ class Settings(BaseSettings):
     org_slug: str = Field(default="thanksgiving-2026", alias="CORNUCOPIA_ORG_SLUG")
     org_name: str = Field(default="Thanksgiving Community Food Rescue", alias="CORNUCOPIA_ORG_NAME")
 
+    # Which organization is active can be switched at runtime by the in-app
+    # demo reset. The switch is written to this file (shared by the API and
+    # the worker on the Sprite) and overrides the slug/name above.
+    active_org_file: Path | None = Field(default=None, alias="CORNUCOPIA_ACTIVE_ORG_FILE")
+    # Minimum role allowed to reset the demo from the UI; unset disables it.
+    demo_reset_role: Literal["operator", "approver", "admin"] | None = Field(
+        default=None, alias="CORNUCOPIA_DEMO_RESET_ROLE"
+    )
+    # How the API reaches itself to load the sample data during a reset.
+    self_url: str = Field(default="http://127.0.0.1:8000", alias="CORNUCOPIA_SELF_URL")
+
     # API auth: bearer token shared with the frontend's server side only.
     api_token: SecretStr | None = Field(default=None, alias="CORNUCOPIA_API_TOKEN")
     cors_origins: list[str] = Field(default_factory=list, alias="CORNUCOPIA_CORS_ORIGINS")
@@ -67,6 +81,26 @@ class Settings(BaseSettings):
 
     http_timeout_s: float = Field(default=15.0, alias="CORNUCOPIA_HTTP_TIMEOUT_S")
     http_retries: int = Field(default=3, ge=0, le=6, alias="CORNUCOPIA_HTTP_RETRIES")
+
+    def active_org(self) -> tuple[str, str]:
+        """(slug, name) of the organization this deployment operates now."""
+        f = self.active_org_file
+        if f is not None and f.is_file():
+            try:
+                data = json.loads(f.read_text())
+                return str(data["slug"]), str(data["name"])
+            except (OSError, ValueError, KeyError):
+                pass
+        return self.org_slug, self.org_name
+
+    def set_active_org(self, slug: str, name: str) -> None:
+        f = self.active_org_file
+        if f is None:
+            return
+        tmp = f.with_suffix(".tmp")
+        tmp.write_text(json.dumps({"slug": slug, "name": name}))
+        tmp.chmod(0o600)
+        os.replace(tmp, f)
 
     @model_validator(mode="after")
     def _check_transport(self) -> Settings:

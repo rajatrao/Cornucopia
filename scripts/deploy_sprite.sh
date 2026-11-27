@@ -12,8 +12,13 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 SPRITE="${SPRITE:-cornucopia}"
 # Which organization this deployment operates (MVP: one per deployment).
-ORG_SLUG="${CORNUCOPIA_ORG_SLUG:-cornucopia-dev}"
+# Set CORNUCOPIA_ORG_SLUG to switch organizations; leave it unset on a plain
+# code redeploy to keep the current one (including one chosen by an in-app
+# demo reset).
+ORG_SLUG="${CORNUCOPIA_ORG_SLUG:-}"
 ORG_NAME="${CORNUCOPIA_ORG_NAME:-CORNUCOPIA development}"
+# Minimum role allowed to reset the demo from the UI (unset: keep current).
+RESET_ROLE="${CORNUCOPIA_DEMO_RESET_ROLE:-}"
 : "${SUPABASE_GATEWAY_URL:?set SUPABASE_GATEWAY_URL (see CONNECTOR_SETUP.md)}"
 REL="$(date -u +%Y%m%dT%H%M%SZ)"
 TARBALL="$(mktemp -d)/cornucopia-$REL.tgz"
@@ -49,15 +54,25 @@ sprite exec -s "$SPRITE" --no-stdin -- bash -seuo pipefail -c "
     echo \"CORNUCOPIA_API_TOKEN=\$(openssl rand -hex 32)\" >> \$ENVF
     echo 'generated new API token'
   fi
-  sed -i '/^SUPABASE_GATEWAY_URL=/d;/^CORNUCOPIA_TRANSPORT=/d;/^CORNUCOPIA_ENV=/d;/^CORNUCOPIA_ORG_/d;/^CORNUCOPIA_LOG_FORMAT=/d' \$ENVF
+  sed -i '/^SUPABASE_GATEWAY_URL=/d;/^CORNUCOPIA_TRANSPORT=/d;/^CORNUCOPIA_ENV=/d;/^CORNUCOPIA_LOG_FORMAT=/d;/^CORNUCOPIA_ACTIVE_ORG_FILE=/d' \$ENVF
   {
     echo 'CORNUCOPIA_ENV=production'
     echo 'CORNUCOPIA_TRANSPORT=gateway'
     echo 'SUPABASE_GATEWAY_URL=$SUPABASE_GATEWAY_URL'
-    echo 'CORNUCOPIA_ORG_SLUG=$ORG_SLUG'
-    echo 'CORNUCOPIA_ORG_NAME=$ORG_NAME'
     echo 'CORNUCOPIA_LOG_FORMAT=json'
+    echo \"CORNUCOPIA_ACTIVE_ORG_FILE=\$CONF/active_org.json\"
   } >> \$ENVF
+  if [ -n '$ORG_SLUG' ]; then
+    sed -i '/^CORNUCOPIA_ORG_/d' \$ENVF
+    printf 'CORNUCOPIA_ORG_SLUG=%s\nCORNUCOPIA_ORG_NAME=%s\n' '$ORG_SLUG' '$ORG_NAME' >> \$ENVF
+    rm -f \$CONF/active_org.json
+  elif ! grep -q '^CORNUCOPIA_ORG_SLUG=' \$ENVF; then
+    printf 'CORNUCOPIA_ORG_SLUG=cornucopia-dev\nCORNUCOPIA_ORG_NAME=CORNUCOPIA development\n' >> \$ENVF
+  fi
+  if [ -n '$RESET_ROLE' ]; then
+    sed -i '/^CORNUCOPIA_DEMO_RESET_ROLE=/d' \$ENVF
+    echo 'CORNUCOPIA_DEMO_RESET_ROLE=$RESET_ROLE' >> \$ENVF
+  fi
 
   sprite-env services delete cornucopia-api >/dev/null 2>&1 || true
   sprite-env services create cornucopia-api \

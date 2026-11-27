@@ -16,10 +16,12 @@ from cornucopia.api.agent import build_router as build_agent_router
 from cornucopia.api.approvals import build_router as build_approvals_router
 from cornucopia.api.command import build_router as build_command_router
 from cornucopia.api.compiler import build_router as build_compiler_router
+from cornucopia.api.demo import build_router as build_demo_router
 from cornucopia.api.operations import build_router, current_operator
 from cornucopia.api.optimizer import build_router as build_optimizer_router
 from cornucopia.api.schemas import DbHealthOut, Liveness, ProbeCreate, ProbeOut
 from cornucopia.config import Settings, TransportMode, get_settings
+from cornucopia.demo.reset import DemoReset
 from cornucopia.persistence.client import SupabaseClient, SupabaseError
 from cornucopia.persistence.factory import build_client
 from cornucopia.persistence.repositories import SupabaseSystemRepository, SystemRepository
@@ -44,9 +46,8 @@ def create_app(settings: Settings | None = None, client: SupabaseClient | None =
         app.state.db = db
         app.state.system_repo = SupabaseSystemRepository(db)
         app.state.ops_repo = SupabaseOperationsRepository(db)
-        app.state.organization = app.state.ops_repo.ensure_organization(
-            settings.org_slug, settings.org_name
-        )
+        app.state.organization = app.state.ops_repo.ensure_organization(*settings.active_org())
+        app.state.demo_reset = DemoReset(app.state, settings)
         log.info("startup transport=%s runtime=%s", settings.transport, _runtime())
         try:
             yield
@@ -55,6 +56,7 @@ def create_app(settings: Settings | None = None, client: SupabaseClient | None =
 
     app = FastAPI(title="CORNUCOPIA API", version=__version__, lifespan=lifespan)
     app.state.settings = settings
+    app.state.demo_reset_background = True
     if settings.cors_origins:
         app.add_middleware(
             CORSMiddleware,
@@ -177,6 +179,7 @@ def create_app(settings: Settings | None = None, client: SupabaseClient | None =
     app.include_router(build_agent_router(), dependencies=[Auth, Session])
     app.include_router(build_command_router(), dependencies=[Auth, Session])
     app.include_router(build_approvals_router(), dependencies=[Auth])
+    app.include_router(build_demo_router(), dependencies=[Auth])
     return app
 
 

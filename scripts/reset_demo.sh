@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Manually reset the public demo to a clean starting point.
+# Manually reset the public demo to a clean starting point (the same reset
+# is also available in the UI: sidebar > Reset demo).
 #
 #   scripts/reset_demo.sh
 #
@@ -30,7 +31,7 @@ fi
 export SUPABASE_GATEWAY_URL
 
 echo "==> switching the Sprite to a fresh organization: $SLUG"
-CORNUCOPIA_ORG_SLUG="$SLUG" CORNUCOPIA_ORG_NAME="$NAME" "$ROOT/scripts/deploy_sprite.sh" >/dev/null
+CORNUCOPIA_ORG_SLUG="$SLUG" CORNUCOPIA_ORG_NAME="$NAME" CORNUCOPIA_DEMO_RESET_ROLE="${CORNUCOPIA_DEMO_RESET_ROLE:-approver}" "$ROOT/scripts/deploy_sprite.sh" >/dev/null
 
 echo "==> recreating operator accounts"
 for spec in "raj:Raj:admin:raj" "judge:Hackathon Judge:approver:judge" "judge-viewer:Judge (read-only):viewer:judge_viewer"; do

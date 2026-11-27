@@ -1,5 +1,11 @@
 # Changelog
 
+
+## Unreleased
+
+- **Reset demo** button in the sidebar for approvers and admins (`POST /api/v1/admin/demo-reset`). Moves to a fresh demonstration organization, keeps accounts and passwords, reloads the sample data, and keeps the Sprite awake while it runs. Off unless `CORNUCOPIA_DEMO_RESET_ROLE` is set.
+- `scripts/reset_demo.sh` for the same reset from a terminal; the sample data now lives in `cornucopia.demo.seed`.
+- `deploy_sprite.sh` keeps the current organization unless `CORNUCOPIA_ORG_SLUG` is given.
 ## 0.9.0 (2026-11-27): Phases 6–9 delivered together
 
 ### Phase 6: approvals and transactional commits

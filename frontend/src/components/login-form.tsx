@@ -29,6 +29,11 @@ export function LoginForm() {
 
   return (
     <form onSubmit={submit} aria-label="Sign in" className="flex flex-col gap-4 rounded-lg border border-amber-900/20 bg-white/60 p-5">
+      {params.get("reset") === "1" && (
+        <p role="status" className="rounded-md bg-emerald-50 p-3 text-sm text-emerald-900">
+          The demo was reset to a fresh copy of the sample data. Please sign in again.
+        </p>
+      )}
       <label htmlFor="username" className="block text-sm">
         <span className="mb-1 block text-xs font-medium uppercase tracking-wide text-stone-600">Username</span>
         <input id="username" autoComplete="username" required className={inputCls} value={username} onChange={(e) => setUsername(e.target.value)} />
