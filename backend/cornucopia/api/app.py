@@ -12,6 +12,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from cornucopia import __version__
+from cornucopia.api.compiler import build_router as build_compiler_router
 from cornucopia.api.operations import build_router
 from cornucopia.api.schemas import DbHealthOut, Liveness, ProbeCreate, ProbeOut
 from cornucopia.config import Settings, TransportMode, get_settings
@@ -144,6 +145,7 @@ def create_app(settings: Settings | None = None, client: SupabaseClient | None =
         return [ProbeOut.model_validate(p.model_dump()) for p in repo.recent_probes()]
 
     app.include_router(build_router(), dependencies=[Auth])
+    app.include_router(build_compiler_router(), dependencies=[Auth])
     return app
 
 

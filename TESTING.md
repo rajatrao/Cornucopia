@@ -69,3 +69,13 @@ Runs on a desktop and a mobile (Pixel 7) profile.
 | `supabase db push --remote` | 2 migrations applied |
 | live on the Sprite via connector | create ingredient, donation 180 lb → 180.0 lb, duplicate returns same event, cancel → 0.0 lb, second cancel 409, audit actor recorded |
 | Playwright (desktop + mobile), real stack | 16 passed (Phase 1 + Phase 2 specs) |
+
+## Phase 3 results (2026-11-27)
+
+| Check | Result |
+|---|---|
+| pytest (incl. 17 compiler/graph tests, DB-level on Postgres 18) | 72 passed |
+| ruff, ruff format, mypy --strict | clean |
+| migrations | 4 reproduce an identical schema; `supabase db push` applied `20261127032000_snapshot` |
+| live on the Sprite via connector | sample data seeded → baseline 500/500 valid; rice donation cancelled → 0/500, rice short 120.0 lb, quinoa suggested (max 40 lb), impact = 1 donation, 1 lot, 1 ingredient, 1 recipe, 1 batch, 1 meal, 3 commitments; `/compiler/plan` ≈ 0.5 s end to end |
+| Playwright (desktop + mobile, serial on live org) | 22 passed |

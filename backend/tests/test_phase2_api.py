@@ -244,3 +244,76 @@ def test_invalid_actor_rejected(client: TestClient) -> None:
             headers={"X-Cornucopia-Actor": "<script>"},
         )
         assert r.status_code == 422
+
+
+def test_compiler_endpoints_over_api(client: TestClient) -> None:
+    with client as c:
+        rice = _post(
+            c,
+            "/api/v1/resources/ingredients",
+            {"name": "Rice", "category": "grain", "base_unit": "g"},
+        )
+        recipe = _post(
+            c,
+            "/api/v1/resources/recipes",
+            {"name": "Pilaf", "yield_portions": "50", "prep_minutes": 30},
+        )
+        _post(
+            c,
+            "/api/v1/resources/recipe-ingredients",
+            {
+                "recipe_id": recipe["id"],
+                "ingredient_id": rice["id"],
+                "quantity": "12",
+                "unit": "lb",
+            },
+        )
+        meal = _post(c, "/api/v1/resources/meals", {"name": "Plate"})
+        _post(
+            c,
+            "/api/v1/resources/meal-components",
+            {"meal_id": meal["id"], "recipe_id": recipe["id"], "portions": "1"},
+        )
+        _post(
+            c,
+            "/api/v1/resources/teams",
+            {"name": "Kitchen", "capacity_portions_per_hour": "100", "available_hours": "5"},
+        )
+        route = _post(
+            c,
+            "/api/v1/resources/deliveries",
+            {"route_name": "A", "capacity_meals": 300, "departs_at": "2030-01-01T10:00:00Z"},
+        )
+        _post(
+            c,
+            "/api/v1/resources/commitments",
+            {
+                "recipient": "Shelter",
+                "meal_id": meal["id"],
+                "meals_count": 100,
+                "due_at": "2030-01-01T12:00:00Z",
+                "delivery_id": route["id"],
+            },
+        )
+        ev = _post(
+            c,
+            "/api/v1/events",
+            {
+                "idempotency_key": "donation-rice-api-1",
+                "event": {
+                    "type": "DONATION_CREATED",
+                    "description": "Rice",
+                    "received": True,
+                    "lots": [{"ingredient_id": rice["id"], "quantity": "12", "unit": "lb"}],
+                },
+            },
+        )
+        rep = c.get("/api/v1/compiler/plan").json()
+        assert rep["validation"]["valid"] is True
+        assert rep["plan"]["metrics"]["meals_planned"] == 50  # 12 lb feeds 50 plates
+        assert rep["plan"]["commitments"][0]["status"] == "partial"
+        assert rep["labels"][rice["id"]] == "Rice" and len(rep["fingerprint"]) == 64
+        imp = c.get(f"/api/v1/compiler/impact/{ev['event']['id']}").json()
+        assert imp["impact"]["counts"]["commitment"] == 1
+        g = c.get("/api/v1/compiler/graph").json()
+        assert any(n["kind"] == "batch" for n in g["nodes"])

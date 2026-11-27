@@ -82,6 +82,14 @@ sprite exec -s cornucopia -- sprite-env services get cornucopia-api
 sprite exec -s cornucopia -- tail -n 50 /.sprite/logs/services/cornucopia-api.log
 ```
 
+## Sample data (development / demonstration organizations only)
+
+Seed the labelled Thanksgiving sample operation through the API. All of it is created through the same validated, audited endpoints as the UI, and the script is idempotent:
+
+```bash
+CORNUCOPIA_API_URL=http://localhost:18000 CORNUCOPIA_API_TOKEN=<token> uv run --project backend python scripts/seed_sample.py --label "[sample] "
+```
+
 ## 3. Frontend on Vercel (*planned for Phase 8*)
 
 The frontend needs two server-side environment variables (never `NEXT_PUBLIC_`):

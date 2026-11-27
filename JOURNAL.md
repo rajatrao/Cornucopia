@@ -95,3 +95,39 @@ See TESTING.md "Phase 2 results": 54 backend tests (11 on real Postgres incl. co
 - [x] Unit conversions pass tests (19)
 
 Recommendation: proceed to Phase 3.
+
+## 2026-11-27 Phase 3: deterministic resource compiler (branch `phase-3-resource-compiler`)
+
+### Files created
+- Backend: `compiler/{snapshot,diet,calculators,plan,planner,validator,substitutions,compare}.py`, `depgraph/graph.py`, `api/compiler.py`, `tests/{compiler_fixtures,test_compiler}.py`
+- DB: `db/sql/0004_snapshot.sql`, `db/alembic/versions/0004_snapshot.py`, `supabase/migrations/20261127032000_snapshot.sql`
+- Frontend: `app/compiler/page.tsx`, `components/compiler-view.tsx`, `e2e/phase3.spec.ts`
+- `scripts/seed_sample.py`, `OPTIMIZATION_ENGINE.md`, `docs/img/phase3-compiler.png`
+
+### Files modified
+`persistence/repositories/operations.py` (snapshot), `persistence/memory.py` (snapshot + server defaults), `api/app.py`, `pyproject.toml` (networkx), BFF proxy whitelist, nav, Playwright config (serial), docs.
+
+### Architecture decisions
+- The compiler is pure and works on one consistent snapshot read in a single RPC. That gives one gateway round trip and no torn reads.
+- The baseline planner is deliberately simple (greedy, earliest due first). The independent validator is what certifies feasibility.
+- Consumption is rounded up to milligrams, so the plan never under-allocates.
+- A late delivery route is a risk, not a hard constraint. Minimising delivery disruption is a soft objective for Phase 4.
+- Sample data is labelled `[sample]` and loaded only through the public API.
+
+### Verification
+See TESTING.md "Phase 3 results".
+
+### Known limitations
+- The baseline uses no substitutions and may serve early commitments at the expense of later ones. Phase 4 optimises globally.
+- Every team can cook every recipe (MVP); there is no per-recipe skill mapping.
+- Plans are computed on demand and not stored yet. PlanVersion and OptimizationRun persistence arrive with Phases 4 to 6.
+
+### Acceptance checklist
+- [x] Initial operational plan can be generated (live: 500/500, validator valid)
+- [x] Resource shortages are identified (rice short 120.0 lb after cancellation)
+- [x] Affected dependencies are identified (NetworkX impact; tested for every event kind)
+- [x] Infeasible commitments are detected (with the binding resource)
+- [x] Ingredient substitutions are validated (scope, diet, spare stock, ratio)
+- [x] All calculations have reproducible tests (determinism and order-independence tests)
+
+Recommendation: proceed to Phase 4.
