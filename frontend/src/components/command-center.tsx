@@ -25,7 +25,7 @@ const LB = 453.59237;
 const qty = (v: string, unit: string) => (unit === "g" ? `${(Number(v) / LB).toFixed(1)} lb` : unit === "ml" ? `${(Number(v) / 1000).toFixed(1)} l` : `${Number(v)} ${unit}`);
 
 function Tile({ label, value, sub, tone }: { label: string; value: string; sub?: string; tone?: "good" | "bad" | "warn" }) {
-  const color = tone === "good" ? "text-emerald-800" : tone === "bad" ? "text-red-800" : tone === "warn" ? "text-amber-800" : "text-stone-900";
+  const color = tone === "good" ? "text-emerald-800" : tone === "bad" ? "text-red-800" : tone === "warn" ? "text-orange-600" : "text-stone-900";
   return (
     <div className="rounded-xl border border-amber-900/20 bg-white/70 p-4 shadow-sm">
       <dt className="text-xs uppercase tracking-wide text-stone-600">{label}</dt>
@@ -108,14 +108,14 @@ export function CommandCenter() {
           <div className="h-64" role="img" aria-label="Inventory coverage chart">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={chart} margin={{ left: 0, right: 8, top: 8, bottom: 8 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e7d9c3" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                 <XAxis dataKey="name" tick={{ fontSize: 11 }} interval={0} />
                 <YAxis tick={{ fontSize: 11 }} domain={[0, (max: number) => Math.max(150, max)]} />
                 <Tooltip formatter={(v) => [`${v}%`, "coverage"]} />
-                <ReferenceLine y={100} stroke="#92400e" strokeDasharray="4 4" />
+                <ReferenceLine y={100} stroke="#7c3aed" strokeDasharray="4 4" />
                 <Bar dataKey="coverage" radius={[4, 4, 0, 0]}>
                   {chart.map((d) => (
-                    <Cell key={d.name} fill={d.coverage >= 100 ? "#047857" : d.coverage > 0 ? "#b45309" : "#b91c1c"} />
+                    <Cell key={d.name} fill={d.coverage >= 100 ? "#10b981" : d.coverage > 0 ? "#f97316" : "#ef4444"} />
                   ))}
                 </Bar>
               </BarChart>
@@ -136,7 +136,7 @@ export function CommandCenter() {
                   </span>
                 </div>
                 <div className="mt-1 h-2 overflow-hidden rounded bg-amber-100">
-                  <div className={`h-2 ${c.status === "feasible" ? "bg-emerald-700" : c.planned ? "bg-amber-600" : "bg-red-700"}`} style={{ width: `${Math.min(100, (100 * c.planned) / Math.max(1, c.requested))}%` }} />
+                  <div className={`h-2 ${c.status === "feasible" ? "bg-emerald-700" : c.planned ? "bg-orange-500" : "bg-red-600"}`} style={{ width: `${Math.min(100, (100 * c.planned) / Math.max(1, c.requested))}%` }} />
                 </div>
               </li>
             ))}

@@ -1,5 +1,60 @@
 @import "tailwindcss";
 
+/*
+ * CORNUCOPIA theme. Components use `amber-*` as the brand accent and
+ * `stone-*` as neutrals; both are remapped here to a modern violet/indigo
+ * accent and cool slate neutrals, so the whole UI re-themes from one place.
+ * Warnings use orange, success emerald, danger red.
+ */
+@theme {
+  --color-amber-50: #f5f3ff;
+  --color-amber-100: #ede9fe;
+  --color-amber-200: #ddd6fe;
+  --color-amber-300: #c4b5fd;
+  --color-amber-400: #a78bfa;
+  --color-amber-500: #8b5cf6;
+  --color-amber-600: #7c3aed;
+  --color-amber-700: #6d28d9;
+  --color-amber-800: #5b21b6;
+  --color-amber-900: #4c1d95;
+  --color-amber-950: #2e1065;
+
+  --color-stone-50: #f8fafc;
+  --color-stone-100: #f1f5f9;
+  --color-stone-200: #e2e8f0;
+  --color-stone-300: #cbd5e1;
+  --color-stone-400: #94a3b8;
+  --color-stone-500: #64748b;
+  --color-stone-600: #475569;
+  --color-stone-700: #334155;
+  --color-stone-800: #1e293b;
+  --color-stone-900: #0f172a;
+  --color-stone-950: #020617;
+
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
 body {
-  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-family: var(--font-sans);
+  background:
+    radial-gradient(1200px 600px at 100% -10%, rgb(139 92 246 / 0.10), transparent 60%),
+    radial-gradient(900px 500px at -10% 110%, rgb(16 185 129 / 0.08), transparent 60%),
+    #f8fafc;
+  min-height: 100vh;
+}
+
+/* primary buttons: gradient instead of flat fill */
+.bg-amber-800 {
+  background-image: linear-gradient(135deg, #7c3aed, #4f46e5);
+}
+.bg-amber-800:hover,
+.hover\:bg-amber-900:hover {
+  background-image: linear-gradient(135deg, #6d28d9, #4338ca);
+}
+/* cards: crisp white surfaces with a soft shadow */
+.bg-white\/60,
+.bg-white\/70 {
+  background-color: rgb(255 255 255 / 0.85);
+  box-shadow: 0 1px 2px rgb(15 23 42 / 0.04), 0 8px 24px -12px rgb(15 23 42 / 0.12);
+  backdrop-filter: blur(6px);
 }

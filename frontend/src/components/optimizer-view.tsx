@@ -66,7 +66,7 @@ const STAGE_LABEL: Record<string, string> = {
 };
 const VERDICT_STYLE: Record<string, string> = {
   verified_feasible: "bg-emerald-100 text-emerald-900 border-emerald-800/30",
-  verified_partial: "bg-amber-100 text-amber-900 border-amber-800/30",
+  verified_partial: "bg-orange-100 text-orange-800 border-orange-300",
   unverified: "bg-red-100 text-red-900 border-red-800/30",
   failed: "bg-red-100 text-red-900 border-red-800/30",
 };
@@ -157,7 +157,7 @@ export function OptimizerView() {
             </span>
           </div>
 
-          <div role="note" aria-label="Diagnosis" className={`rounded-md border p-3 text-sm ${r.diagnosis.fully_serviceable ? "border-emerald-800/30 bg-emerald-50 text-emerald-900" : "border-amber-800/30 bg-amber-50 text-amber-950"}`}>
+          <div role="note" aria-label="Diagnosis" className={`rounded-md border p-3 text-sm ${r.diagnosis.fully_serviceable ? "border-emerald-800/30 bg-emerald-50 text-emerald-900" : "border-orange-300 bg-orange-50 text-orange-900"}`}>
             <p className="font-medium">Diagnosis</p>
             <p>{r.diagnosis.explanation}</p>
             {Object.entries(r.diagnosis.blocked).map(([id, reasons]) => (

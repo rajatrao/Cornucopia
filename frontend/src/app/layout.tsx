@@ -12,9 +12,9 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
-      <body className="bg-amber-50 text-stone-900 antialiased">
+      <body className="text-stone-900 antialiased">
         <SiteNav />
-        {children}
+        <div className="lg:pl-60">{children}</div>
       </body>
     </html>
   );

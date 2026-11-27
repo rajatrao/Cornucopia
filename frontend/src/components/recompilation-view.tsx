@@ -35,7 +35,7 @@ interface ExecRow {
 }
 
 const COLUMNS = ["donation", "lot", "volunteer", "team", "ingredient", "recipe", "batch", "meal", "delivery", "commitment"];
-const COLOR: Record<string, string> = { origin: "#b91c1c", downstream: "#b45309", upstream: "#1d4ed8" };
+const COLOR: Record<string, string> = { origin: "#b91c1c", downstream: "#7c3aed", upstream: "#1d4ed8" };
 const LB = 453.59237;
 
 function graph(impact: Recomp["impact"]): { nodes: Node[]; edges: Edge[] } {
@@ -50,7 +50,7 @@ function graph(impact: Recomp["impact"]): { nodes: Node[]; edges: Edge[] } {
         id: n.id,
         position: { x: ci * 190, y: ri * 78 },
         data: { label: `${n.kind}\n${n.label}` },
-        style: { whiteSpace: "pre-line", fontSize: 11, width: 160, border: `2px solid ${COLOR[n.role] ?? "#78716c"}`, background: n.role === "origin" ? "#fee2e2" : "#fffbeb", color: "#1c1917", borderRadius: 8 },
+        style: { whiteSpace: "pre-line", fontSize: 11, width: 160, border: `2px solid ${COLOR[n.role] ?? "#78716c"}`, background: n.role === "origin" ? "#fee2e2" : "#f5f3ff", color: "#1c1917", borderRadius: 8 },
       }),
     ),
   );
@@ -60,7 +60,7 @@ function graph(impact: Recomp["impact"]): { nodes: Node[]; edges: Edge[] } {
     target: e.target,
     label: e.rel.replaceAll("_", " "),
     animated: e.rel !== "substitute_for",
-    style: { stroke: e.rel === "substitute_for" ? "#1d4ed8" : "#b45309", strokeDasharray: e.rel === "substitute_for" ? "4 4" : undefined },
+    style: { stroke: e.rel === "substitute_for" ? "#1d4ed8" : "#7c3aed", strokeDasharray: e.rel === "substitute_for" ? "4 4" : undefined },
     labelStyle: { fontSize: 9 },
     markerEnd: { type: MarkerType.ArrowClosed },
   }));
@@ -150,10 +150,13 @@ export function RecompilationView() {
               <h2 id="plans-h" className="mb-2 font-semibold text-stone-900">
                 Original vs. replacement plan
               </h2>
-              <p className="mb-2 text-sm text-stone-700">
-                Without recovery: <span className="font-mono">{before?.meals_planned ?? "?"}</span> meals · Proposed: <span className="font-mono">{data.proposed_plan?.metrics.meals_planned ?? "—"}</span> of{" "}
-                {data.proposed_plan?.metrics.meals_requested ?? "?"}
-              </p>
+              {data.proposed_plan ? (
+                <p className="mb-2 text-sm text-stone-700">
+                  Without recovery: <span className="font-mono">{before?.meals_planned ?? "?"}</span> meals · Proposed: <span className="font-mono">{data.proposed_plan.metrics.meals_planned}</span> of {data.proposed_plan.metrics.meals_requested}
+                </p>
+              ) : (
+                <p className="text-sm text-stone-600">No commitment affected by this event was at risk, so the plan was left unchanged.</p>
+              )}
               <table className="min-w-full text-left text-sm">
                 <caption className="sr-only">Commitments in the proposed plan</caption>
                 <tbody className="divide-y divide-amber-900/10">

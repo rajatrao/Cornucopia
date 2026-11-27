@@ -57,7 +57,7 @@ function qty(base: string | number, unit: string): string {
 
 const STATUS_STYLE: Record<string, string> = {
   feasible: "bg-emerald-100 text-emerald-900 border-emerald-800/30",
-  partial: "bg-amber-100 text-amber-900 border-amber-800/30",
+  partial: "bg-orange-100 text-orange-800 border-orange-300",
   infeasible: "bg-red-100 text-red-900 border-red-800/30",
 };
 

@@ -50,7 +50,7 @@ const STATUS_STYLE: Record<string, string> = {
   running: "bg-sky-100 text-sky-900 border-sky-800/30",
   awaiting_approval: "bg-violet-100 text-violet-900 border-violet-800/30",
   completed: "bg-emerald-100 text-emerald-900 border-emerald-800/30",
-  escalated: "bg-amber-100 text-amber-900 border-amber-800/30",
+  escalated: "bg-orange-100 text-orange-800 border-orange-300",
   failed: "bg-red-100 text-red-900 border-red-800/30",
 };
 const STEP_STYLE: Record<string, string> = {
@@ -191,7 +191,7 @@ export function ExecutionsView() {
                 </div>
               )}
               {result?.outcome?.reasons && (
-                <div role="note" className="rounded-md border border-amber-800/30 bg-amber-50 p-3 text-sm text-amber-950">
+                <div role="note" className="rounded-md border border-orange-300 bg-orange-50 p-3 text-sm text-orange-900">
                   <p className="font-medium">Escalated to operator</p>
                   <ul className="list-disc pl-5">
                     {result.outcome.reasons.map((r) => (

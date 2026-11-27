@@ -36,8 +36,8 @@ const STATUS_STYLE: Record<string, string> = {
   approved: "bg-sky-100 text-sky-900 border-sky-800/30",
   committed: "bg-emerald-100 text-emerald-900 border-emerald-800/30",
   rejected: "bg-stone-200 text-stone-800 border-stone-500/30",
-  stale: "bg-amber-100 text-amber-900 border-amber-800/30",
-  expired: "bg-amber-100 text-amber-900 border-amber-800/30",
+  stale: "bg-orange-100 text-orange-800 border-orange-300",
+  expired: "bg-orange-100 text-orange-800 border-orange-300",
 };
 const REFUSAL: Record<string, string> = {
   unauthorized: "Your role cannot approve plans (approver role required). The attempt was recorded.",
@@ -152,13 +152,13 @@ export function ApprovalCenter() {
           <>
             <div className="flex flex-wrap items-center gap-3">
               <Badge s={r.status} />
-              {r.escalated && <span className="rounded-full border border-amber-800/30 bg-amber-100 px-2 py-0.5 text-xs text-amber-900">escalated</span>}
+              {r.escalated && <span className="rounded-full border border-orange-300 bg-orange-100 px-2 py-0.5 text-xs text-orange-800">escalated</span>}
               <span className="font-mono text-xs text-stone-600">
                 plan v{detail.plan_version?.version_number} · fingerprint {r.fingerprint.slice(0, 16)}… · computed at state v{r.state_version} (now v{detail.operational_state_version}) · expires {fmtTime(r.expires_at)}
               </span>
             </div>
             {!detail.is_current && pending && (
-              <p role="note" className="rounded-md border border-amber-800/30 bg-amber-50 p-3 text-sm text-amber-950">
+              <p role="note" className="rounded-md border border-orange-300 bg-orange-50 p-3 text-sm text-orange-900">
                 Operations changed after this plan was computed; approving it will be refused as stale.
               </p>
             )}

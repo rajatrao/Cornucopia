@@ -18,13 +18,13 @@ export function OperatorMenu() {
   }, []);
   if (!me) return null;
   return (
-    <span className="flex items-center gap-2 text-xs text-stone-600">
-      <span>
-        {me.display_name} <span className="rounded bg-amber-100 px-1">{me.role}</span>
+    <span className="flex flex-col gap-1 text-xs text-slate-400">
+      <span className="text-sm text-slate-200">
+        {me.display_name} <span className="ml-1 rounded-full bg-violet-500/20 px-2 py-0.5 text-[10px] uppercase tracking-wide text-violet-200">{me.role}</span>
       </span>
       <button
         type="button"
-        className="underline hover:text-amber-900"
+        className="self-start underline hover:text-white"
         onClick={() => {
           void fetch("/api/auth/logout", { method: "POST" }).then(() => {
             window.location.href = "/login";
