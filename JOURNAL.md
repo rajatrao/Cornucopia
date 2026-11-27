@@ -199,3 +199,48 @@ Recommendation: proceed to Phase 5.
 - [x] Execution history is visible in the UI (Agent page timeline; Playwright)
 
 Recommendation: proceed to Phase 6.
+
+## 2026-11-27 Phases 6–9 (branch `phase-6-approvals`, delivered together at Raj's request)
+
+### Phase 6: approval and transactional commit engine
+- Migrations 0007 (approvals), 0008 (operator changes do not bump the operational version) and 0009 (outbox delivery, worker liveness), all applied.
+- `backend/cornucopia/{auth,admin}.py`, `api/approvals.py`. Operator sessions; roles enforced; actor derived from the session.
+- The agent proposes at `request_approval`, resumes on decisions and commits through `commit_approved_plan`. Partial-but-better plans go to humans flagged as escalations.
+- Acceptance:
+  - [x] approval and rejection work
+  - [x] stale approvals fail (at decision and at commit)
+  - [x] unauthorized operators cannot approve (recorded)
+  - [x] concurrent approvals are safe (one wins)
+  - [x] committed plans have complete audit history (row audit under the approver, decision log, plan version, outbox)
+
+### Phase 7: command center
+- New pages: Command Center (`/`), Reality Recompilation (React Flow), Approval Center, Simulation Lab (`/simulation`), Sign in. The older Phase 1 page moved to `/system`.
+- Acceptance:
+  - [x] all screens functional with live data
+  - [x] forms validate
+  - [x] approvals work end to end
+  - [x] responsive (Playwright mobile project)
+  - [x] Playwright passes
+
+### Phase 8: persistence, resilience, deployment
+- Outbox delivery into the notification feed, `agent_workers` heartbeats, `/health/agent`, JSON logs, supervisor backoff, session secret generated on the Sprite, Sprite URL switched to public (all routes need the token, operational routes also need a session).
+- Drills: worker KILL → resumed attempt 2 (Phase 5 and again here); API restart; graceful stop.
+- Vercel: steps documented. **Needs Raj's Vercel login** (CLI not installed or authenticated on this machine).
+- Acceptance:
+  - [x] agent executes inside the Sprite
+  - [x] frontend reaches the Sprite API
+  - [x] connector works in production
+  - [x] restarts lose nothing
+  - [x] interrupted workflows recover
+  - [x] no duplicate commits
+  - [x] health checks
+  - [x] independently verifiable (public URL + DEMO_SCRIPT)
+
+### Phase 9: demonstration
+- `scripts/run_scenarios.py` and `DEMO_SCRIPT.md`. The rehearsal org ran both scenarios end to end in 70 s. The clean demo org `thanksgiving-2026-demo` is seeded and live on the Sprite, waiting for the operator's first event.
+
+### Known limitations / risks
+- **Public Sprite URL stalls.** Through the public URL, some requests from a laptop stalled until client timeout (they never reached the API). The same calls through `sprite proxy`, and API calls inside the Sprite, were reliable. The frontend retries idempotent reads once; writes are idempotent by key, so a retried event submission is safe. Re-check after deploying to Vercel.
+- No sign-in rate limiting yet.
+- A demo video is not recorded yet (requested for after development).
+- Gateway latency (~0.3 s per call) keeps an agent execution around 10–20 s.

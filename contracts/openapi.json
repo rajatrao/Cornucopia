@@ -416,6 +416,53 @@
         "title": "DbHealthOut",
         "type": "object"
       },
+      "DecisionIn": {
+        "additionalProperties": false,
+        "properties": {
+          "confirm": {
+            "default": false,
+            "title": "Confirm",
+            "type": "boolean"
+          },
+          "decision": {
+            "enum": [
+              "approve",
+              "reject"
+            ],
+            "title": "Decision",
+            "type": "string"
+          },
+          "fingerprint": {
+            "maxLength": 64,
+            "minLength": 64,
+            "title": "Fingerprint",
+            "type": "string"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "state_version": {
+            "title": "State Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "decision",
+          "fingerprint",
+          "state_version"
+        ],
+        "title": "DecisionIn",
+        "type": "object"
+      },
       "DeliveryCancelled": {
         "additionalProperties": false,
         "properties": {
@@ -1323,6 +1370,53 @@
         "title": "Liveness",
         "type": "object"
       },
+      "LoginIn": {
+        "additionalProperties": false,
+        "properties": {
+          "password": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Password",
+            "type": "string"
+          },
+          "username": {
+            "maxLength": 64,
+            "minLength": 3,
+            "pattern": "^[a-z0-9._-]+$",
+            "title": "Username",
+            "type": "string"
+          }
+        },
+        "required": [
+          "username",
+          "password"
+        ],
+        "title": "LoginIn",
+        "type": "object"
+      },
+      "LoginOut": {
+        "properties": {
+          "expires_at": {
+            "format": "date-time",
+            "title": "Expires At",
+            "type": "string"
+          },
+          "operator": {
+            "$ref": "#/components/schemas/OperatorIdentity"
+          },
+          "token": {
+            "title": "Token",
+            "type": "string"
+          }
+        },
+        "required": [
+          "token",
+          "expires_at",
+          "operator"
+        ],
+        "title": "LoginOut",
+        "type": "object"
+      },
       "LotOut": {
         "properties": {
           "base_unit": {
@@ -1399,6 +1493,41 @@
           "status"
         ],
         "title": "LotOut",
+        "type": "object"
+      },
+      "OperatorIdentity": {
+        "properties": {
+          "display_name": {
+            "title": "Display Name",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "role": {
+            "enum": [
+              "viewer",
+              "operator",
+              "approver",
+              "admin"
+            ],
+            "title": "Role",
+            "type": "string"
+          },
+          "username": {
+            "title": "Username",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "username",
+          "display_name",
+          "role"
+        ],
+        "title": "OperatorIdentity",
         "type": "object"
       },
       "OptimizationReport": {
@@ -2167,6 +2296,27 @@
         "title": "ShortfallOut",
         "type": "object"
       },
+      "SimulationIn": {
+        "additionalProperties": false,
+        "properties": {
+          "scenario": {
+            "enum": [
+              "donation_cancellation",
+              "ingredient_shortage",
+              "volunteer_shortage",
+              "delivery_disruption",
+              "multiple_failures"
+            ],
+            "title": "Scenario",
+            "type": "string"
+          }
+        },
+        "required": [
+          "scenario"
+        ],
+        "title": "SimulationIn",
+        "type": "object"
+      },
       "StageOut": {
         "properties": {
           "deterministic_time": {
@@ -2542,7 +2692,7 @@
   },
   "info": {
     "title": "CORNUCOPIA API",
-    "version": "0.5.0"
+    "version": "0.9.0"
   },
   "openapi": "3.1.0",
   "paths": {
@@ -2558,6 +2708,22 @@
               "default": 50,
               "title": "Limit",
               "type": "integer"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-cornucopia-session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Cornucopia-Session"
             }
           }
         ],
@@ -2612,6 +2778,22 @@
               "title": "Execution Id",
               "type": "string"
             }
+          },
+          {
+            "in": "header",
+            "name": "x-cornucopia-session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Cornucopia-Session"
+            }
           }
         ],
         "responses": {
@@ -2652,6 +2834,24 @@
     "/api/v1/agent/status": {
       "get": {
         "operationId": "status_api_v1_agent_status_get",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "x-cornucopia-session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Cornucopia-Session"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "content": {
@@ -2664,6 +2864,16 @@
               }
             },
             "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
           }
         },
         "security": [
@@ -2674,6 +2884,217 @@
         "summary": "Status",
         "tags": [
           "agent"
+        ]
+      }
+    },
+    "/api/v1/approvals": {
+      "get": {
+        "operationId": "list_approvals_api_v1_approvals_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-cornucopia-session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Cornucopia-Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "additionalProperties": true,
+                    "type": "object"
+                  },
+                  "title": "Response List Approvals Api V1 Approvals Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Approvals",
+        "tags": [
+          "approvals"
+        ]
+      }
+    },
+    "/api/v1/approvals/{request_id}": {
+      "get": {
+        "operationId": "get_approval_api_v1_approvals__request_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "request_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Request Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-cornucopia-session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Cornucopia-Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Get Approval Api V1 Approvals  Request Id  Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Approval",
+        "tags": [
+          "approvals"
+        ]
+      }
+    },
+    "/api/v1/approvals/{request_id}/decision": {
+      "post": {
+        "operationId": "decide_api_v1_approvals__request_id__decision_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "request_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Request Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-cornucopia-session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Cornucopia-Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DecisionIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Decide Api V1 Approvals  Request Id  Decision Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Decide",
+        "tags": [
+          "approvals"
         ]
       }
     },
@@ -2689,6 +3110,22 @@
               "default": 100,
               "title": "Limit",
               "type": "integer"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-cornucopia-session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Cornucopia-Session"
             }
           }
         ],
@@ -2729,9 +3166,183 @@
         ]
       }
     },
+    "/api/v1/auth/login": {
+      "post": {
+        "operationId": "login_api_v1_auth_login_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Login",
+        "tags": [
+          "approvals"
+        ]
+      }
+    },
+    "/api/v1/auth/me": {
+      "get": {
+        "operationId": "me_api_v1_auth_me_get",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "x-cornucopia-session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Cornucopia-Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperatorIdentity"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Me",
+        "tags": [
+          "approvals"
+        ]
+      }
+    },
+    "/api/v1/command-center": {
+      "get": {
+        "operationId": "command_center_api_v1_command_center_get",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "x-cornucopia-session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Cornucopia-Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Command Center Api V1 Command Center Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Command Center",
+        "tags": [
+          "command"
+        ]
+      }
+    },
     "/api/v1/compiler/graph": {
       "get": {
         "operationId": "graph_api_v1_compiler_graph_get",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "x-cornucopia-session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Cornucopia-Session"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "content": {
@@ -2742,6 +3353,16 @@
               }
             },
             "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
           }
         },
         "security": [
@@ -2767,6 +3388,22 @@
               "format": "uuid",
               "title": "Event Id",
               "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-cornucopia-session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Cornucopia-Session"
             }
           }
         ],
@@ -2816,6 +3453,22 @@
               "title": "Include Pledged",
               "type": "boolean"
             }
+          },
+          {
+            "in": "header",
+            "name": "x-cornucopia-session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Cornucopia-Session"
+            }
           }
         ],
         "responses": {
@@ -2864,6 +3517,22 @@
               "title": "Limit",
               "type": "integer"
             }
+          },
+          {
+            "in": "header",
+            "name": "x-cornucopia-session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Cornucopia-Session"
+            }
           }
         ],
         "responses": {
@@ -2907,7 +3576,7 @@
         "parameters": [
           {
             "in": "header",
-            "name": "x-cornucopia-actor",
+            "name": "x-cornucopia-session",
             "required": false,
             "schema": {
               "anyOf": [
@@ -2918,7 +3587,7 @@
                   "type": "null"
                 }
               ],
-              "title": "X-Cornucopia-Actor"
+              "title": "X-Cornucopia-Session"
             }
           }
         ],
@@ -2978,6 +3647,22 @@
               "title": "Event Id",
               "type": "string"
             }
+          },
+          {
+            "in": "header",
+            "name": "x-cornucopia-session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Cornucopia-Session"
+            }
           }
         ],
         "responses": {
@@ -3016,6 +3701,24 @@
     "/api/v1/inventory/donations": {
       "get": {
         "operationId": "donations_api_v1_inventory_donations_get",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "x-cornucopia-session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Cornucopia-Session"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "content": {
@@ -3030,6 +3733,16 @@
               }
             },
             "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
           }
         },
         "security": [
@@ -3046,6 +3759,24 @@
     "/api/v1/inventory/lots": {
       "get": {
         "operationId": "lots_api_v1_inventory_lots_get",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "x-cornucopia-session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Cornucopia-Session"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "content": {
@@ -3060,6 +3791,16 @@
               }
             },
             "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
           }
         },
         "security": [
@@ -3076,6 +3817,24 @@
     "/api/v1/inventory/summary": {
       "get": {
         "operationId": "summary_api_v1_inventory_summary_get",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "x-cornucopia-session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Cornucopia-Session"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "content": {
@@ -3090,6 +3849,16 @@
               }
             },
             "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
           }
         },
         "security": [
@@ -3100,6 +3869,75 @@
         "summary": "Summary",
         "tags": [
           "operations"
+        ]
+      }
+    },
+    "/api/v1/notifications": {
+      "get": {
+        "operationId": "notifications_api_v1_notifications_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-cornucopia-session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Cornucopia-Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "additionalProperties": true,
+                    "type": "object"
+                  },
+                  "title": "Response Notifications Api V1 Notifications Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Notifications",
+        "tags": [
+          "command"
         ]
       }
     },
@@ -3115,6 +3953,22 @@
               "default": 20,
               "title": "Limit",
               "type": "integer"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-cornucopia-session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Cornucopia-Session"
             }
           }
         ],
@@ -3159,7 +4013,7 @@
         "parameters": [
           {
             "in": "header",
-            "name": "x-cornucopia-actor",
+            "name": "x-cornucopia-session",
             "required": false,
             "schema": {
               "anyOf": [
@@ -3170,7 +4024,7 @@
                   "type": "null"
                 }
               ],
-              "title": "X-Cornucopia-Actor"
+              "title": "X-Cornucopia-Session"
             }
           }
         ],
@@ -3230,6 +4084,22 @@
               "title": "Run Id",
               "type": "string"
             }
+          },
+          {
+            "in": "header",
+            "name": "x-cornucopia-session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Cornucopia-Session"
+            }
           }
         ],
         "responses": {
@@ -3270,6 +4140,24 @@
     "/api/v1/organization": {
       "get": {
         "operationId": "get_org_api_v1_organization_get",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "x-cornucopia-session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Cornucopia-Session"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "content": {
@@ -3280,6 +4168,16 @@
               }
             },
             "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
           }
         },
         "security": [
@@ -3290,6 +4188,128 @@
         "summary": "Get Org",
         "tags": [
           "operations"
+        ]
+      }
+    },
+    "/api/v1/plans/current": {
+      "get": {
+        "operationId": "current_plan_api_v1_plans_current_get",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "x-cornucopia-session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Cornucopia-Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Current Plan Api V1 Plans Current Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Current Plan",
+        "tags": [
+          "approvals"
+        ]
+      }
+    },
+    "/api/v1/recompilation/{execution_id}": {
+      "get": {
+        "operationId": "recompilation_api_v1_recompilation__execution_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "execution_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Execution Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-cornucopia-session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Cornucopia-Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Recompilation Api V1 Recompilation  Execution Id  Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Recompilation",
+        "tags": [
+          "command"
         ]
       }
     },
@@ -3304,6 +4324,22 @@
             "schema": {
               "title": "Kind",
               "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-cornucopia-session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Cornucopia-Session"
             }
           }
         ],
@@ -3358,7 +4394,7 @@
           },
           {
             "in": "header",
-            "name": "x-cornucopia-actor",
+            "name": "x-cornucopia-session",
             "required": false,
             "schema": {
               "anyOf": [
@@ -3369,7 +4405,7 @@
                   "type": "null"
                 }
               ],
-              "title": "X-Cornucopia-Actor"
+              "title": "X-Cornucopia-Session"
             }
           }
         ],
@@ -3433,7 +4469,7 @@
           },
           {
             "in": "header",
-            "name": "x-cornucopia-actor",
+            "name": "x-cornucopia-session",
             "required": false,
             "schema": {
               "anyOf": [
@@ -3444,7 +4480,7 @@
                   "type": "null"
                 }
               ],
-              "title": "X-Cornucopia-Actor"
+              "title": "X-Cornucopia-Session"
             }
           }
         ],
@@ -3497,7 +4533,7 @@
           },
           {
             "in": "header",
-            "name": "x-cornucopia-actor",
+            "name": "x-cornucopia-session",
             "required": false,
             "schema": {
               "anyOf": [
@@ -3508,7 +4544,7 @@
                   "type": "null"
                 }
               ],
-              "title": "X-Cornucopia-Actor"
+              "title": "X-Cornucopia-Session"
             }
           }
         ],
@@ -3544,6 +4580,134 @@
         "summary": "Update Resource",
         "tags": [
           "operations"
+        ]
+      }
+    },
+    "/api/v1/simulations": {
+      "post": {
+        "description": "Read-only: runs on a copy of the snapshot and persists nothing.",
+        "operationId": "run_simulation_api_v1_simulations_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "x-cornucopia-session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Cornucopia-Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SimulationIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Run Simulation Api V1 Simulations Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Run Simulation",
+        "tags": [
+          "command"
+        ]
+      }
+    },
+    "/api/v1/simulations/scenarios": {
+      "get": {
+        "operationId": "scenarios_api_v1_simulations_scenarios_get",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "x-cornucopia-session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Cornucopia-Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "additionalProperties": {
+                      "type": "string"
+                    },
+                    "type": "object"
+                  },
+                  "title": "Response Scenarios Api V1 Simulations Scenarios Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Scenarios",
+        "tags": [
+          "command"
         ]
       }
     },
@@ -3685,6 +4849,35 @@
           }
         },
         "summary": "Health",
+        "tags": [
+          "health"
+        ]
+      }
+    },
+    "/health/agent": {
+      "get": {
+        "description": "Is an agent worker alive? Workers heartbeat every 15 s while the\nSprite is awake; a paused Sprite resumes them on the next request.",
+        "operationId": "health_agent_health_agent_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Health Agent Health Agent Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Health Agent",
         "tags": [
           "health"
         ]

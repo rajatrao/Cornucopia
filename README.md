@@ -18,8 +18,11 @@ CORNUCOPIA is an autonomous resource compiler built for Fly.io Hacksgiving 2026.
 | 2 | Domain model, units, operational event journal, resource UI | Done |
 | 3 | Deterministic resource compiler, dependency graph, compiler UI | Done |
 | 4 | OR-Tools CP-SAT recovery optimizer, diagnosis, optimizer UI | Done |
-| 5 | LangGraph agent on the Sprite, Supabase checkpointer, leases, execution history | Done, awaiting approval (branch `phase-5-agent`) |
-| 6 to 9 | Approvals, command center, resilience, demo | Planned (`IMPLEMENTATION_PLAN.md`) |
+| 5 | LangGraph agent on the Sprite, Supabase checkpointer, leases, execution history | Done |
+| 6 | Operator sign-in, versioned approvals, atomic plan commits, transactional outbox | Done |
+| 7 | Command Center, Reality Recompilation (React Flow), Approval Center, Simulation Lab | Done |
+| 8 | Outbox delivery, worker liveness, health checks, JSON logs, restart drills, deployment | Done (Vercel deploy needs your Vercel login, see `DEPLOYMENT.md`) |
+| 9 | Demonstration organization, two scenarios, `DEMO_SCRIPT.md` | Done |
 
 ## Repository map
 
@@ -53,8 +56,8 @@ sprite proxy -s cornucopia 18000:8000
 cd frontend && npx next start -p 3100
 ```
 
-`frontend/.env.local` (gitignored) needs `CORNUCOPIA_API_URL=http://localhost:18000` and `CORNUCOPIA_API_TOKEN`. See `DEPLOYMENT.md`.
+`frontend/.env.local` (gitignored) needs `CORNUCOPIA_API_URL` and `CORNUCOPIA_API_TOKEN`. Sign in with an operator account (see `DEPLOYMENT.md` § Operators). The demo walk-through is in `DEMO_SCRIPT.md`.
 
 ## Documentation
 
-`ARCHITECTURE.md`, `AGENT_WORKFLOW.md`, `OPTIMIZATION_ENGINE.md`, `IMPLEMENTATION_PLAN.md`, `DEPLOYMENT.md`, `CONNECTOR_SETUP.md`, `DATABASE_SCHEMA.md`, `SECURITY.md`, `TESTING.md`, `CHANGELOG.md`, `JOURNAL.md`. The agent, optimizer and demo documents arrive with their phases.
+`ARCHITECTURE.md`, `AGENT_WORKFLOW.md`, `OPTIMIZATION_ENGINE.md`, `IMPLEMENTATION_PLAN.md`, `DEPLOYMENT.md`, `CONNECTOR_SETUP.md`, `DATABASE_SCHEMA.md`, `SECURITY.md`, `TESTING.md`, `DEMO_SCRIPT.md`, `CHANGELOG.md`, `JOURNAL.md`.

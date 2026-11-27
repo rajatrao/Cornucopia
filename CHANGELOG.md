@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.9.0 (2026-11-27): Phases 6–9 delivered together
+
+### Phase 6: approvals and transactional commits
+- Operator accounts (argon2id) with roles. HS256 session tokens issued by the API and kept by Next.js in an HttpOnly cookie. The acting operator always comes from the session.
+- Versioned plans (`plan_versions`, `plan_changes`) and approval requests bound to plan version, fingerprint, state version, requesting execution and expiry.
+- `decide_approval`: role, duplicate, expiry, fingerprint, staleness and explicit-confirmation checks. Every attempt is recorded, including refusals.
+- `commit_approved_plan`: one transaction that re-verifies everything, applies batches, reservations, routing and planned meals, records the commit, audits under the approver's name and writes the outbox message.
+- The agent proposes at `request_approval`, is resumed by the decision (`Command(resume=…)`) and commits through the fenced RPC. A newer proposal supersedes older ones (STALE).
+
+### Phase 7: command center UI
+- Command Center (KPIs, inventory health chart, commitments, shortages, agent status, approvals, events, notifications).
+- Reality Recompilation with a React Flow dependency graph, original vs. replacement plan, objectives, risks and agent timeline.
+- Approval Center with explicit confirmation and decision history, and a Simulation Laboratory running five isolated what-if scenarios.
+
+### Phase 8: resilience and deployment
+- Transactional outbox delivery into the notification feed, worker heartbeats, `/health/agent`, JSON logs and backoff in the supervisor loop.
+- Public Sprite URL behind service token plus operator sessions; documented Vercel deployment; restart drills.
+
+### Phase 9: demonstration
+- A demonstration organization seeded through the API, the `scripts/run_scenarios.py` driver for both scenarios, and `DEMO_SCRIPT.md`.
+
 ## 0.5.0 (2026-11-27): Phase 5 LangGraph autonomous agent
 
 - A 17-node LangGraph recovery agent with conditional routing, bounded strategy retries, node retry policies and explicit tool interfaces.

@@ -18,6 +18,7 @@ function describe(detail: unknown): string {
       .map((d: { loc?: unknown[]; msg?: string }) => `${(d.loc ?? []).slice(1).join(".") || "body"}: ${d.msg}`)
       .join("; ");
   }
+  if (detail && typeof detail === "object" && "code" in detail && !("message" in detail)) return String((detail as { code: unknown }).code);
   if (detail && typeof detail === "object" && "message" in detail) return String((detail as { message: unknown }).message);
   return "request failed";
 }
@@ -28,6 +29,9 @@ export async function ops<T = unknown>(path: string, init: RequestInit = {}): Pr
     headers: { "Content-Type": "application/json", ...(init.headers ?? {}) },
     cache: "no-store",
   });
+  if (res.status === 401 && typeof window !== "undefined") {
+    window.location.href = `/login?next=${encodeURIComponent(window.location.pathname)}`;
+  }
   if (res.status === 204) return undefined as T;
   const text = await res.text();
   let data: unknown = null;

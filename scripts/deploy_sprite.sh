@@ -41,17 +41,22 @@ sprite exec -s "$SPRITE" --no-stdin -- bash -seuo pipefail -c "
   mkdir -p \$CONF && chmod 700 \$CONF
   ENVF=\$CONF/cornucopia.env
   touch \$ENVF && chmod 600 \$ENVF
+  if ! grep -q '^CORNUCOPIA_SESSION_SECRET=' \$ENVF; then
+    echo \"CORNUCOPIA_SESSION_SECRET=\$(openssl rand -hex 32)\" >> \$ENVF
+    echo 'generated new session signing secret'
+  fi
   if ! grep -q '^CORNUCOPIA_API_TOKEN=' \$ENVF; then
     echo \"CORNUCOPIA_API_TOKEN=\$(openssl rand -hex 32)\" >> \$ENVF
     echo 'generated new API token'
   fi
-  sed -i '/^SUPABASE_GATEWAY_URL=/d;/^CORNUCOPIA_TRANSPORT=/d;/^CORNUCOPIA_ENV=/d;/^CORNUCOPIA_ORG_/d' \$ENVF
+  sed -i '/^SUPABASE_GATEWAY_URL=/d;/^CORNUCOPIA_TRANSPORT=/d;/^CORNUCOPIA_ENV=/d;/^CORNUCOPIA_ORG_/d;/^CORNUCOPIA_LOG_FORMAT=/d' \$ENVF
   {
     echo 'CORNUCOPIA_ENV=production'
     echo 'CORNUCOPIA_TRANSPORT=gateway'
     echo 'SUPABASE_GATEWAY_URL=$SUPABASE_GATEWAY_URL'
     echo 'CORNUCOPIA_ORG_SLUG=$ORG_SLUG'
     echo 'CORNUCOPIA_ORG_NAME=$ORG_NAME'
+    echo 'CORNUCOPIA_LOG_FORMAT=json'
   } >> \$ENVF
 
   sprite-env services delete cornucopia-api >/dev/null 2>&1 || true

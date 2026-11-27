@@ -36,6 +36,12 @@ class InMemorySupabaseClient(SupabaseClient):
         self.register_rpc("heartbeat_execution", _heartbeat)
         self.register_rpc("record_execution_step", _record_step)
         self.register_rpc("finish_execution", _finish)
+        self.register_rpc("propose_plan", _propose)
+        self.register_rpc("decide_approval", _decide)
+        self.register_rpc("commit_approved_plan", _commit)
+        self.register_rpc("expire_approvals", _expire)
+        self.register_rpc("deliver_outbox", _deliver)
+        self.register_rpc("worker_heartbeat", lambda db, a: True)
 
     def register_rpc(self, name: str, fn: RpcFn) -> None:
         self._rpcs[name] = fn
@@ -429,6 +435,29 @@ def _claim(db: InMemorySupabaseClient, args: Mapping[str, Any]) -> JSON:
             _step(db, ex, ex.get("current_node") or "supervisor", "resumed", {"worker": worker})
             ev = next(e for e in events if e["id"] == ex["event_id"])
             return {"resumed": True, "execution": _jsonable(ex), "event": copy.deepcopy(ev)}
+    for ex in execs:
+        if ex["organization_id"] != org or ex["status"] != "awaiting_approval":
+            continue
+        req = next(
+            (r for r in db.tables.get("approval_requests", []) if r["execution_id"] == ex["id"]),
+            None,
+        )
+        if req and req["status"] in ("approved", "rejected", "stale", "expired"):
+            ex.update(
+                status="running",
+                lease_owner=worker,
+                attempt=ex["attempt"] + 1,
+                lease_expires_at=now + lease,
+                heartbeat_at=now,
+            )
+            _step(db, ex, "request_approval", "resumed", {"approval_status": req["status"]})
+            ev = next(e for e in events if e["id"] == ex["event_id"])
+            return {
+                "resumed": True,
+                "execution": _jsonable(ex),
+                "event": copy.deepcopy(ev),
+                "approval": {"request_id": req["id"], "status": req["status"]},
+            }
     for ev in sorted(events, key=lambda e: (e["created_at"], e["id"])):
         if ev["organization_id"] != org or ev["processing_status"] != "pending":
             continue
@@ -515,3 +544,216 @@ def _finish(db: InMemorySupabaseClient, args: Mapping[str, Any]) -> JSON:
                 status, "processed"
             )
     return True
+
+
+# --- Phase 6 test doubles (authoritative: db/sql/0007_approvals.sql, tested on
+# --- Postgres in tests/db/test_approvals_sql.py)
+
+
+def _state_version(db: InMemorySupabaseClient, org: str) -> int:
+    for st in db.tables.get("operational_state", []):
+        if st["organization_id"] == org:
+            return int(st["version"])
+    return 0
+
+
+def _propose(db: InMemorySupabaseClient, args: Mapping[str, Any]) -> JSON:
+    ex = _find_exec(db, args["p_execution_id"])
+    if not _lease_ok(ex, args["p_worker"], args["p_attempt"]):
+        raise SupabaseError(
+            400, {"code": "P0409", "message": "lease"}, method="POST", path="/rpc/propose_plan"
+        )
+    for r in db.tables.get("approval_requests", []):
+        if r["execution_id"] == args["p_execution_id"]:
+            return {
+                "request_id": r["id"],
+                "plan_version_id": r["plan_version_id"],
+                "fingerprint": r["fingerprint"],
+                "state_version": r["state_version"],
+                "expires_at": r["expires_at"],
+                "duplicate": True,
+            }
+    org = args["p_organization_id"]
+    run = next(x for x in db.tables["optimization_runs"] if x["id"] == args["p_run_id"])
+    res = next(
+        x
+        for x in db.tables["optimization_results"]
+        if x["run_id"] == run["id"] and x["recommended"]
+    )
+    n = 1 + max([int(v["version_number"]) for v in db.tables.get("plan_versions", [])] or [0])
+    pv = db.insert(
+        "plan_versions",
+        [
+            {
+                "organization_id": org,
+                "version_number": n,
+                "optimization_run_id": run["id"],
+                "execution_id": args["p_execution_id"],
+                "fingerprint": res["fingerprint"],
+                "state_version": run["state_version"],
+                "verdict": res["verdict"],
+                "plan": res["plan"],
+                "summary": res["summary"],
+                "status": "proposed",
+            }
+        ],
+    )[0]
+    for ch in args.get("p_changes") or []:
+        db.insert("plan_changes", [{"plan_version_id": pv["id"], **ch}])
+    for r in db.tables.get("approval_requests", []):
+        if r["organization_id"] == org and r["status"] in ("pending", "approved"):
+            r["status"] = "stale"
+    from datetime import timedelta
+
+    exp = (datetime.now(UTC) + timedelta(minutes=int(args["p_ttl_minutes"]))).isoformat()
+    req = db.insert(
+        "approval_requests",
+        [
+            {
+                "organization_id": org,
+                "plan_version_id": pv["id"],
+                "execution_id": args["p_execution_id"],
+                "fingerprint": pv["fingerprint"],
+                "state_version": pv["state_version"],
+                "status": "pending",
+                "escalated": bool(args.get("p_escalated")),
+                "requested_by": "agent",
+                "report": args.get("p_report") or {},
+                "expires_at": exp,
+                "updated_at": _now(),
+            }
+        ],
+    )[0]
+    return {
+        "request_id": req["id"],
+        "plan_version_id": pv["id"],
+        "version_number": n,
+        "fingerprint": pv["fingerprint"],
+        "state_version": pv["state_version"],
+        "expires_at": exp,
+        "duplicate": False,
+    }
+
+
+def _decide(db: InMemorySupabaseClient, args: Mapping[str, Any]) -> JSON:
+    req = next(r for r in db.tables["approval_requests"] if r["id"] == args["p_request_id"])
+    op = next((o for o in db.tables.get("operators", []) if o["id"] == args["p_operator_id"]), None)
+    current = _state_version(db, req["organization_id"])
+    code = None
+    if op is None or op["role"] not in ("approver", "admin"):
+        code = "unauthorized"
+    elif req["status"] in ("approved", "committed"):
+        code = "duplicate"
+    elif req["status"] != "pending":
+        code = "not_pending"
+    elif args["p_fingerprint"] != req["fingerprint"]:
+        code = "fingerprint_mismatch"
+    elif args["p_state_version"] != req["state_version"] or current != req["state_version"]:
+        code, req["status"] = "stale", "stale"
+    elif args["p_decision"] == "approve" and not args.get("p_confirm"):
+        code = "confirmation_required"
+    db.insert(
+        "approval_decisions",
+        [
+            {
+                "approval_request_id": req["id"],
+                "operator_id": op["id"] if op else None,
+                "operator_username": op["username"] if op else "unknown",
+                "decision": args["p_decision"],
+                "accepted": code is None,
+                "refusal_reason": code,
+                "fingerprint_presented": args["p_fingerprint"],
+                "state_version_presented": args["p_state_version"],
+                "confirmed": bool(args.get("p_confirm")),
+                "reason": args.get("p_reason"),
+            }
+        ],
+    )
+    if code:
+        return {"accepted": False, "code": code, "status": req["status"]}
+    req["status"] = "approved" if args["p_decision"] == "approve" else "rejected"
+    req["updated_at"] = _now()
+    return {"accepted": True, "status": req["status"]}
+
+
+def _commit(db: InMemorySupabaseClient, args: Mapping[str, Any]) -> JSON:
+    req = next(r for r in db.tables["approval_requests"] if r["id"] == args["p_request_id"])
+    ex = _find_exec(db, req["execution_id"])
+    if not _lease_ok(ex, args["p_worker"], args["p_attempt"]):
+        raise SupabaseError(
+            400,
+            {"code": "P0409", "message": "lease"},
+            method="POST",
+            path="/rpc/commit_approved_plan",
+        )
+    if req["status"] == "committed":
+        return {"committed": True, "duplicate": True, "plan_version_id": req["plan_version_id"]}
+    if req["status"] != "approved":
+        return {"committed": False, "code": "not_approved", "status": req["status"]}
+    if _state_version(db, req["organization_id"]) != req["state_version"]:
+        req["status"] = "stale"
+        return {"committed": False, "code": "stale"}
+    pv = next(v for v in db.tables["plan_versions"] if v["id"] == req["plan_version_id"])
+    for c in db.tables.get("commitments", []):
+        for p in pv["plan"]["commitments"]:
+            if p["commitment_id"] == c["id"]:
+                c["planned_meals"], c["committed_plan_version_id"] = p["planned"], pv["id"]
+    for st in db.tables.get("operational_state", []):
+        if st["organization_id"] == req["organization_id"]:
+            st["committed_plan_version_id"] = pv["id"]
+    pv["status"], req["status"] = "committed", "committed"
+    after = _bump(db, req["organization_id"])
+    db.insert(
+        "outbox_messages",
+        [
+            {
+                "organization_id": req["organization_id"],
+                "topic": "plan.committed",
+                "payload": {"plan_version_id": pv["id"]},
+                "attempts": 0,
+                "delivered_at": None,
+            }
+        ],
+    )
+    return {
+        "committed": True,
+        "duplicate": False,
+        "plan_version_id": pv["id"],
+        "version_number": pv["version_number"],
+        "state_version_after": after,
+    }
+
+
+def _expire(db: InMemorySupabaseClient, args: Mapping[str, Any]) -> JSON:
+    org = args["p_organization_id"]
+    current = _state_version(db, org)
+    stale = 0
+    for r in db.tables.get("approval_requests", []):
+        if (
+            r["organization_id"] == org
+            and r["status"] in ("pending", "approved")
+            and r["state_version"] != current
+        ):
+            r["status"], stale = "stale", stale + 1
+    return {"expired": 0, "stale": stale}
+
+
+def _deliver(db: InMemorySupabaseClient, args: Mapping[str, Any]) -> JSON:
+    n = 0
+    for m in db.tables.get("outbox_messages", []):
+        if m["organization_id"] == args["p_organization_id"] and not m.get("delivered_at"):
+            db.insert(
+                "operator_notifications",
+                [
+                    {
+                        "organization_id": m["organization_id"],
+                        "outbox_message_id": m["id"],
+                        "topic": m["topic"],
+                        "title": m["topic"],
+                        "payload": m["payload"],
+                    }
+                ],
+            )
+            m["delivered_at"] = _now()
+            n += 1
+    return {"delivered": n}

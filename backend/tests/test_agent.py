@@ -19,6 +19,7 @@ from cornucopia.agent.tools import LeaseLost, SupabaseAgentTools
 from cornucopia.api.app import create_app
 from cornucopia.config import Settings
 from cornucopia.persistence.memory import InMemorySupabaseClient
+from tests.auth_helpers import sign_in
 
 
 class NoHold(SpriteHold):
@@ -47,6 +48,7 @@ def env() -> tuple[TestClient, InMemorySupabaseClient, dict[str, str]]:
         )
     )
     c.__enter__()
+    sign_in(c, db)
     ids: dict[str, str] = {}
     ids["rice"] = _post(
         c, "/api/v1/resources/ingredients", {"name": "Rice", "category": "grain", "base_unit": "g"}
@@ -392,3 +394,114 @@ def test_unrelated_event_does_not_reescalate_preexisting_shortfall(env) -> None:
     outcome = _execution(db, ev["event"]["id"])["result"]["outcome"]
     assert outcome["reason"] == "no commitment affected by this event is at risk"
     assert outcome["preexisting_shortfall_meals"] == 100
+
+
+# ----------------------------------------------------------- Phase 6 flows
+def _exec_by_id(db: InMemorySupabaseClient, exec_id: str) -> dict[str, Any]:
+    return next(x for x in db.tables["agent_executions"] if x["id"] == exec_id)
+
+
+def _pending_proposal(c, db, ids):  # type: ignore[no-untyped-def]
+    _post(
+        c,
+        "/api/v1/events",
+        {
+            "idempotency_key": "quinoa-1",
+            "event": {
+                "type": "DONATION_CREATED",
+                "description": "Quinoa",
+                "received": True,
+                "lots": [{"ingredient_id": ids["quinoa"], "quantity": "30", "unit": "lb"}],
+            },
+        },
+    )
+    w = _worker(c, db, "w1")
+    _drain(w)
+    _cancel_rice(c, ids)
+    assert _drain(w) == ["awaiting_approval"]
+    (req,) = [r for r in c.get("/api/v1/approvals").json() if r["status"] == "pending"]
+    return w, req
+
+
+def _decide(c, req, decision="approve", **kw):  # type: ignore[no-untyped-def]
+    body = {
+        "decision": decision,
+        "fingerprint": req["fingerprint"],
+        "state_version": req["state_version"],
+        "confirm": True,
+        **kw,
+    }
+    return c.post(f"/api/v1/approvals/{req['id']}/decision", json=body)
+
+
+def test_approved_plan_is_committed_by_the_agent(env) -> None:  # type: ignore[no-untyped-def]
+    c, db, ids = env
+    w, req = _pending_proposal(c, db, ids)
+    detail = c.get(f"/api/v1/approvals/{req['id']}").json()
+    assert detail["is_current"] and any(ch["kind"] == "commitment" for ch in detail["changes"])
+    assert _decide(c, req, confirm=False).status_code == 422  # explicit confirmation required
+    assert _decide(c, req).status_code == 200
+    assert _decide(c, req).status_code == 409  # duplicate approval refused
+    assert _drain(w) == ["completed"]
+    ex = _exec_by_id(db, req["execution_id"])
+    assert ex["result"]["outcome"]["status"] == "committed"
+    commitment = next(x for x in db.tables["commitments"] if x["id"] == ids["commitment"])
+    assert commitment["planned_meals"] == 100
+    assert c.get("/api/v1/plans/current").json()["plan_version"]["status"] == "committed"
+    assert db.tables["outbox_messages"][0]["topic"] == "plan.committed"
+    decisions = c.get(f"/api/v1/approvals/{req['id']}").json()["decisions"]
+    assert [d["accepted"] for d in decisions] == [False, True, False]
+
+
+def test_unauthorized_operator_cannot_approve(env) -> None:  # type: ignore[no-untyped-def]
+    c, db, ids = env
+    _, req = _pending_proposal(c, db, ids)
+    admin_token = c.headers["X-Cornucopia-Session"]
+    sign_in(c, db, "viewer1", "operator")  # an operator, not an approver
+    r = _decide(c, req)
+    assert r.status_code == 403 and r.json()["detail"]["code"] == "unauthorized"
+    c.headers["X-Cornucopia-Session"] = admin_token
+    refused = c.get(f"/api/v1/approvals/{req['id']}").json()["decisions"]
+    assert refused[0]["operator_username"] == "viewer1" and not refused[0]["accepted"]
+
+
+def test_stale_approval_fails_when_operations_changed(env) -> None:  # type: ignore[no-untyped-def]
+    c, db, ids = env
+    w, req = _pending_proposal(c, db, ids)
+    _post(c, "/api/v1/resources/donors", {"name": "Late Donor"})  # any change bumps the version
+    r = _decide(c, req)
+    assert r.status_code == 409 and r.json()["detail"]["code"] == "stale"
+    assert _drain(w) == ["completed"]  # agent resumes and records the stale outcome
+    assert _exec_by_id(db, req["execution_id"])["result"]["outcome"]["status"] == "stale"
+
+
+def test_rejected_plan_is_not_committed(env) -> None:  # type: ignore[no-untyped-def]
+    c, db, ids = env
+    w, req = _pending_proposal(c, db, ids)
+    assert _decide(c, req, "reject", reason="prefer to wait for rice").status_code == 200
+    assert _drain(w) == ["completed"]
+    assert _exec_by_id(db, req["execution_id"])["result"]["outcome"]["status"] == "rejected"
+    assert all(x.get("planned_meals") is None for x in db.tables["commitments"])
+
+
+def test_command_center_recompilation_and_simulation(env) -> None:  # type: ignore[no-untyped-def]
+    c, db, ids = env
+    w, req = _pending_proposal(c, db, ids)
+    assert _decide(c, req).status_code == 200
+    _drain(w)
+    w.deliver_outbox()
+    cc = c.get("/api/v1/command-center").json()
+    assert cc["meals_committed"] == 100 and cc["committed_plan"]["meals_planned"] == 100
+    assert cc["notifications"][0]["topic"] == "plan.committed"
+    rc = c.get(f"/api/v1/recompilation/{req['execution_id']}").json()
+    assert rc["impact"]["counts"]["commitment"] == 1 and rc["proposed_plan"]["metrics"]
+    assert rc["approval_request"]["status"] == "committed"
+    keys = [s["key"] for s in c.get("/api/v1/simulations/scenarios").json()]
+    assert "multiple_failures" in keys
+    before_runs = len(db.tables.get("optimization_runs", []))
+    sim = c.post("/api/v1/simulations", json={"scenario": "donation_cancellation"}).json()
+    assert (
+        sim["isolated"] is True and sim["after"]["meals_planned"] <= sim["before"]["meals_planned"]
+    )
+    assert len(db.tables.get("optimization_runs", [])) == before_runs  # nothing persisted
+    assert c.post("/api/v1/simulations", json={"scenario": "meteor"}).status_code == 422

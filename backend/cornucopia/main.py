@@ -1,8 +1,7 @@
 """ASGI entrypoint: uvicorn cornucopia.main:app"""
 
-import logging
-
 from cornucopia.api.app import create_app
+from cornucopia.logging_setup import configure
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
+configure("cornucopia-api")
 app = create_app()

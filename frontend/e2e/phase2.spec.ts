@@ -109,7 +109,7 @@ test("cancelling the donation removes its stock; integrity blocks deletes", asyn
   await expect(page.locator("main").getByRole("alert")).toBeVisible(); // lots still reference it
 
   await page.goto("/history");
-  await expect(page.getByRole("table", { name: "Audit log" })).toContainText("operator:console");
+  await expect(page.getByRole("table", { name: "Audit log" })).toContainText("operator:e2e-approver");
 });
 
 test("event forms refuse incomplete facts", async ({ page }) => {

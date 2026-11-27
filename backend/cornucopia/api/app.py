@@ -13,8 +13,10 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from cornucopia import __version__
 from cornucopia.api.agent import build_router as build_agent_router
+from cornucopia.api.approvals import build_router as build_approvals_router
+from cornucopia.api.command import build_router as build_command_router
 from cornucopia.api.compiler import build_router as build_compiler_router
-from cornucopia.api.operations import build_router
+from cornucopia.api.operations import build_router, current_operator
 from cornucopia.api.optimizer import build_router as build_optimizer_router
 from cornucopia.api.schemas import DbHealthOut, Liveness, ProbeCreate, ProbeOut
 from cornucopia.config import Settings, TransportMode, get_settings
@@ -112,6 +114,27 @@ def create_app(settings: Settings | None = None, client: SupabaseClient | None =
             latency_ms=_ms(started),
         )
 
+    @app.get("/health/agent", tags=["health"], dependencies=[Auth])
+    def health_agent(request: Request) -> dict[str, object]:
+        """Is an agent worker alive? Workers heartbeat every 15 s while the
+        Sprite is awake; a paused Sprite resumes them on the next request."""
+        repo = request.app.state.ops_repo
+        org = request.app.state.organization
+        workers = repo.list("agent_workers", org.id, order="last_seen_at.desc", limit=5)
+        now = time.time()
+        live = []
+        for w in workers:
+            from datetime import datetime
+
+            age = now - datetime.fromisoformat(str(w["last_seen_at"])).timestamp()
+            if w["status"] == "running" and age < 90:
+                live.append({"worker_id": w["worker_id"], "seconds_since_heartbeat": round(age, 1)})
+        return {
+            "status": "ok" if live else "degraded",
+            "live_workers": live,
+            "known_workers": len(workers),
+        }
+
     @app.post(
         "/api/v1/system/probes",
         response_model=ProbeOut,
@@ -146,10 +169,14 @@ def create_app(settings: Settings | None = None, client: SupabaseClient | None =
     def list_probes(repo: Repo) -> list[ProbeOut]:
         return [ProbeOut.model_validate(p.model_dump()) for p in repo.recent_probes()]
 
-    app.include_router(build_router(), dependencies=[Auth])
-    app.include_router(build_compiler_router(), dependencies=[Auth])
-    app.include_router(build_optimizer_router(), dependencies=[Auth])
-    app.include_router(build_agent_router(), dependencies=[Auth])
+    # Every operational route needs the service token AND a signed-in operator.
+    Session = Depends(current_operator)
+    app.include_router(build_router(), dependencies=[Auth, Session])
+    app.include_router(build_compiler_router(), dependencies=[Auth, Session])
+    app.include_router(build_optimizer_router(), dependencies=[Auth, Session])
+    app.include_router(build_agent_router(), dependencies=[Auth, Session])
+    app.include_router(build_command_router(), dependencies=[Auth, Session])
+    app.include_router(build_approvals_router(), dependencies=[Auth])
     return app
 
 

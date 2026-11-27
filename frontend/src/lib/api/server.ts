@@ -1,5 +1,9 @@
 import "server-only";
 
+import { cookies } from "next/headers";
+
+import { SESSION_COOKIE } from "@/lib/session-cookie";
+
 import type { components } from "./contract.gen";
 
 /**
@@ -56,15 +60,18 @@ async function call<T>(path: string, init: RequestInit = {}): Promise<T> {
   return (await res.json()) as T;
 }
 
-/** Raw pass-through used by the /api/ops proxy (status codes preserved). */
-export async function forward(method: string, path: string, body?: string): Promise<Response> {
+/** Raw pass-through used by the /api/ops proxy (status codes preserved).
+ * The operator's signed session travels from the HttpOnly cookie to the API
+ * as a header; the API verifies it and derives the acting operator from it. */
+export async function forward(method: string, path: string, body?: string, withSession = true): Promise<Response> {
   const { baseUrl, token } = config();
   const headers = new Headers({ Accept: "application/json" });
   if (token) headers.set("Authorization", `Bearer ${token}`);
   if (body !== undefined) headers.set("Content-Type", "application/json");
-  // Phase 2: one shared operator identity asserted by this trusted server.
-  // Per-operator sign-in replaces this in Phase 6/8.
-  headers.set("X-Cornucopia-Actor", process.env.CORNUCOPIA_ACTOR ?? "operator:console");
+  if (withSession) {
+    const session = (await cookies()).get(SESSION_COOKIE)?.value;
+    if (session) headers.set("X-Cornucopia-Session", session);
+  }
   try {
     return await fetch(`${baseUrl}${path}`, {
       method,

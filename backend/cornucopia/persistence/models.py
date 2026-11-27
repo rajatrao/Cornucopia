@@ -797,3 +797,36 @@ class OutboxMessage(Base):
     last_error: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[datetime] = _created_at()
     __table_args__ = (Index("ix_outbox_messages_pending", "delivered_at", "next_attempt_at"),)
+
+
+# --------------------------------------------------------------------------
+# Phase 8: outbox delivery target and worker liveness
+# --------------------------------------------------------------------------
+
+
+class OperatorNotification(Base):
+    """In-app notification feed: the destination the outbox delivers to."""
+
+    __tablename__ = "operator_notifications"
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    organization_id: Mapped[uuid.UUID] = _org_fk()
+    outbox_message_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey(f"{SCHEMA}.outbox_messages.id"), nullable=False, unique=True
+    )
+    topic: Mapped[str] = mapped_column(String(64), nullable=False)
+    title: Mapped[str] = mapped_column(String(300), nullable=False)
+    payload: Mapped[dict[str, object]] = mapped_column(JSONB, nullable=False)
+    created_at: Mapped[datetime] = _created_at()
+
+
+class AgentWorker(Base):
+    """Liveness of agent worker processes (heartbeat while the Sprite is awake)."""
+
+    __tablename__ = "agent_workers"
+    worker_id: Mapped[str] = mapped_column(String(120), primary_key=True)
+    organization_id: Mapped[uuid.UUID] = _org_fk()
+    started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    last_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    status: Mapped[str] = mapped_column(String(16), nullable=False)
+    version: Mapped[str] = mapped_column(String(32), nullable=False)
+    __table_args__ = (CheckConstraint("status in ('running','stopping','stopped')", name="status"),)

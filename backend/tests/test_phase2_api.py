@@ -22,6 +22,7 @@ from cornucopia.domain.events import (
 from cornucopia.domain.inventory import Lot, summarize
 from cornucopia.domain.units import ConversionError, Unit
 from cornucopia.persistence.memory import InMemorySupabaseClient
+from tests.auth_helpers import sign_in
 
 EVENT = TypeAdapter(EventPayload)
 
@@ -114,11 +115,15 @@ def test_volume_report_for_mass_ingredient_needs_density() -> None:
 @pytest.fixture
 def client() -> TestClient:
     s = Settings(CORNUCOPIA_TRANSPORT="memory", _env_file=None)  # type: ignore[call-arg]
-    return TestClient(create_app(s, client=InMemorySupabaseClient()))
+    db = InMemorySupabaseClient()
+    c = TestClient(create_app(s, client=db))
+    c.__enter__()
+    sign_in(c, db)
+    return c
 
 
 def _post(c: TestClient, path: str, body: dict[str, Any], status: int = 201) -> Any:
-    r = c.post(path, json=body, headers={"X-Cornucopia-Actor": "op:test"})
+    r = c.post(path, json=body)
     assert r.status_code == status, r.text
     return r.json()
 
@@ -212,7 +217,7 @@ def test_event_flow_is_idempotent_and_updates_inventory(client: TestClient) -> N
         assert stock["available_display"] == "150.0 lb"
         events = c.get("/api/v1/events").json()
         assert [e["event_type"] for e in events][:2] == ["INVENTORY_ADJUSTED", "DONATION_CREATED"]
-        assert events[0]["actor"] == "op:test"
+        assert events[0]["actor"] == "operator:tester"
         assert c.get("/api/v1/organization").json()["state_version"] >= 3
 
 
@@ -234,16 +239,20 @@ def test_event_for_unknown_ingredient_is_rejected(client: TestClient) -> None:
         assert c.get("/api/v1/events").json() == []
 
 
-def test_invalid_actor_rejected(client: TestClient) -> None:
+def test_session_is_required_and_roles_are_enforced(client: TestClient) -> None:
     with client as c:
-        r = c.get("/api/v1/organization")
-        assert r.status_code == 200
-        r = c.post(
-            "/api/v1/resources/donors",
-            json={"name": "A"},
-            headers={"X-Cornucopia-Actor": "<script>"},
+        token = c.headers.pop("X-Cornucopia-Session")
+        assert c.get("/api/v1/organization").status_code == 401
+        assert (
+            c.get("/api/v1/organization", headers={"X-Cornucopia-Session": "x.y.z"}).status_code
+            == 401
         )
-        assert r.status_code == 422
+        c.headers["X-Cornucopia-Session"] = token
+        assert c.get("/api/v1/auth/me").json()["role"] == "admin"
+        bad = c.post(
+            "/api/v1/auth/login", json={"username": "tester", "password": "wrong-password"}
+        )
+        assert bad.status_code == 401
 
 
 def test_compiler_endpoints_over_api(client: TestClient) -> None:

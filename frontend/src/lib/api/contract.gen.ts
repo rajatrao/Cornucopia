@@ -55,6 +55,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/approvals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Approvals */
+        get: operations["list_approvals_api_v1_approvals_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/approvals/{request_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Approval */
+        get: operations["get_approval_api_v1_approvals__request_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/approvals/{request_id}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Decide */
+        post: operations["decide_api_v1_approvals__request_id__decision_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/audit": {
         parameters: {
             query?: never;
@@ -64,6 +115,57 @@ export interface paths {
         };
         /** Audit */
         get: operations["audit_api_v1_audit_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/login": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Login */
+        post: operations["login_api_v1_auth_login_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Me */
+        get: operations["me_api_v1_auth_me_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/command-center": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Command Center */
+        get: operations["command_center_api_v1_command_center_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -209,6 +311,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/notifications": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Notifications */
+        get: operations["notifications_api_v1_notifications_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/optimizer/runs": {
         parameters: {
             query?: never;
@@ -261,6 +380,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/plans/current": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Current Plan */
+        get: operations["current_plan_api_v1_plans_current_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/recompilation/{execution_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Recompilation */
+        get: operations["recompilation_api_v1_recompilation__execution_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/resources/{kind}": {
         parameters: {
             query?: never;
@@ -295,6 +448,43 @@ export interface paths {
         head?: never;
         /** Update Resource */
         patch: operations["update_resource_api_v1_resources__kind___row_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/simulations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Run Simulation
+         * @description Read-only: runs on a copy of the snapshot and persists nothing.
+         */
+        post: operations["run_simulation_api_v1_simulations_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/simulations/scenarios": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Scenarios */
+        get: operations["scenarios_api_v1_simulations_scenarios_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/v1/system/probes": {
@@ -341,6 +531,27 @@ export interface paths {
         };
         /** Health */
         get: operations["health_health_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/health/agent": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Health Agent
+         * @description Is an agent worker alive? Workers heartbeat every 15 s while the
+         *     Sprite is awake; a paused Sprite resumes them on the next request.
+         */
+        get: operations["health_agent_health_agent_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -528,6 +739,25 @@ export interface components {
             status: "ok" | "error";
             /** Transport */
             transport: string;
+        };
+        /** DecisionIn */
+        DecisionIn: {
+            /**
+             * Confirm
+             * @default false
+             */
+            confirm: boolean;
+            /**
+             * Decision
+             * @enum {string}
+             */
+            decision: "approve" | "reject";
+            /** Fingerprint */
+            fingerprint: string;
+            /** Reason */
+            reason?: string | null;
+            /** State Version */
+            state_version: number;
         };
         /** DeliveryCancelled */
         DeliveryCancelled: {
@@ -870,6 +1100,24 @@ export interface components {
             /** Version */
             version: string;
         };
+        /** LoginIn */
+        LoginIn: {
+            /** Password */
+            password: string;
+            /** Username */
+            username: string;
+        };
+        /** LoginOut */
+        LoginOut: {
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
+            operator: components["schemas"]["OperatorIdentity"];
+            /** Token */
+            token: string;
+        };
         /** LotOut */
         LotOut: {
             base_unit: components["schemas"]["Unit"];
@@ -901,6 +1149,23 @@ export interface components {
             reported_unit: components["schemas"]["Unit"];
             /** Status */
             status: string;
+        };
+        /** OperatorIdentity */
+        OperatorIdentity: {
+            /** Display Name */
+            display_name: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Role
+             * @enum {string}
+             */
+            role: "viewer" | "operator" | "approver" | "admin";
+            /** Username */
+            username: string;
         };
         /**
          * OptimizationReport
@@ -1234,6 +1499,14 @@ export interface components {
             /** Unit */
             unit: string;
         };
+        /** SimulationIn */
+        SimulationIn: {
+            /**
+             * Scenario
+             * @enum {string}
+             */
+            scenario: "donation_cancellation" | "ingredient_shortage" | "volunteer_shortage" | "delivery_disruption" | "multiple_failures";
+        };
         /** StageOut */
         StageOut: {
             /** Deterministic Time */
@@ -1410,7 +1683,9 @@ export interface operations {
             query?: {
                 limit?: number;
             };
-            header?: never;
+            header?: {
+                "x-cornucopia-session"?: string | null;
+            };
             path?: never;
             cookie?: never;
         };
@@ -1441,7 +1716,9 @@ export interface operations {
     execution_api_v1_agent_executions__execution_id__get: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "x-cornucopia-session"?: string | null;
+            };
             path: {
                 execution_id: string;
             };
@@ -1474,7 +1751,9 @@ export interface operations {
     status_api_v1_agent_status_get: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "x-cornucopia-session"?: string | null;
+            };
             path?: never;
             cookie?: never;
         };
@@ -1491,6 +1770,124 @@ export interface operations {
                     };
                 };
             };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_approvals_api_v1_approvals_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: {
+                "x-cornucopia-session"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    }[];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_approval_api_v1_approvals__request_id__get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-cornucopia-session"?: string | null;
+            };
+            path: {
+                request_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    decide_api_v1_approvals__request_id__decision_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-cornucopia-session"?: string | null;
+            };
+            path: {
+                request_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DecisionIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
         };
     };
     audit_api_v1_audit_get: {
@@ -1498,7 +1895,9 @@ export interface operations {
             query?: {
                 limit?: number;
             };
-            header?: never;
+            header?: {
+                "x-cornucopia-session"?: string | null;
+            };
             path?: never;
             cookie?: never;
         };
@@ -1524,10 +1923,109 @@ export interface operations {
             };
         };
     };
-    graph_api_v1_compiler_graph_get: {
+    login_api_v1_auth_login_post: {
         parameters: {
             query?: never;
             header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LoginIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LoginOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    me_api_v1_auth_me_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-cornucopia-session"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OperatorIdentity"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    command_center_api_v1_command_center_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-cornucopia-session"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    graph_api_v1_compiler_graph_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-cornucopia-session"?: string | null;
+            };
             path?: never;
             cookie?: never;
         };
@@ -1542,12 +2040,23 @@ export interface operations {
                     "application/json": components["schemas"]["GraphOut"];
                 };
             };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
         };
     };
     event_impact_api_v1_compiler_impact__event_id__get: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "x-cornucopia-session"?: string | null;
+            };
             path: {
                 event_id: string;
             };
@@ -1580,7 +2089,9 @@ export interface operations {
             query?: {
                 include_pledged?: boolean;
             };
-            header?: never;
+            header?: {
+                "x-cornucopia-session"?: string | null;
+            };
             path?: never;
             cookie?: never;
         };
@@ -1611,7 +2122,9 @@ export interface operations {
             query?: {
                 limit?: number;
             };
-            header?: never;
+            header?: {
+                "x-cornucopia-session"?: string | null;
+            };
             path?: never;
             cookie?: never;
         };
@@ -1641,7 +2154,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                "x-cornucopia-actor"?: string | null;
+                "x-cornucopia-session"?: string | null;
             };
             path?: never;
             cookie?: never;
@@ -1675,7 +2188,9 @@ export interface operations {
     get_event_api_v1_events__event_id__get: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "x-cornucopia-session"?: string | null;
+            };
             path: {
                 event_id: string;
             };
@@ -1706,7 +2221,9 @@ export interface operations {
     donations_api_v1_inventory_donations_get: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "x-cornucopia-session"?: string | null;
+            };
             path?: never;
             cookie?: never;
         };
@@ -1721,12 +2238,23 @@ export interface operations {
                     "application/json": components["schemas"]["DonationOut"][];
                 };
             };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
         };
     };
     lots_api_v1_inventory_lots_get: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "x-cornucopia-session"?: string | null;
+            };
             path?: never;
             cookie?: never;
         };
@@ -1741,12 +2269,23 @@ export interface operations {
                     "application/json": components["schemas"]["LotOut"][];
                 };
             };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
         };
     };
     summary_api_v1_inventory_summary_get: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "x-cornucopia-session"?: string | null;
+            };
             path?: never;
             cookie?: never;
         };
@@ -1761,6 +2300,50 @@ export interface operations {
                     "application/json": components["schemas"]["StockOut"][];
                 };
             };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    notifications_api_v1_notifications_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: {
+                "x-cornucopia-session"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    }[];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
         };
     };
     list_runs_api_v1_optimizer_runs_get: {
@@ -1768,7 +2351,9 @@ export interface operations {
             query?: {
                 limit?: number;
             };
-            header?: never;
+            header?: {
+                "x-cornucopia-session"?: string | null;
+            };
             path?: never;
             cookie?: never;
         };
@@ -1798,7 +2383,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                "x-cornucopia-actor"?: string | null;
+                "x-cornucopia-session"?: string | null;
             };
             path?: never;
             cookie?: never;
@@ -1832,7 +2417,9 @@ export interface operations {
     get_run_api_v1_optimizer_runs__run_id__get: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "x-cornucopia-session"?: string | null;
+            };
             path: {
                 run_id: string;
             };
@@ -1865,7 +2452,9 @@ export interface operations {
     get_org_api_v1_organization_get: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "x-cornucopia-session"?: string | null;
+            };
             path?: never;
             cookie?: never;
         };
@@ -1880,12 +2469,91 @@ export interface operations {
                     "application/json": components["schemas"]["OrgOut"];
                 };
             };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    current_plan_api_v1_plans_current_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-cornucopia-session"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    recompilation_api_v1_recompilation__execution_id__get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-cornucopia-session"?: string | null;
+            };
+            path: {
+                execution_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
         };
     };
     list_resources_api_v1_resources__kind__get: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "x-cornucopia-session"?: string | null;
+            };
             path: {
                 kind: string;
             };
@@ -1919,7 +2587,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                "x-cornucopia-actor"?: string | null;
+                "x-cornucopia-session"?: string | null;
             };
             path: {
                 kind: string;
@@ -1954,7 +2622,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                "x-cornucopia-actor"?: string | null;
+                "x-cornucopia-session"?: string | null;
             };
             path: {
                 kind: string;
@@ -1986,7 +2654,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                "x-cornucopia-actor"?: string | null;
+                "x-cornucopia-session"?: string | null;
             };
             path: {
                 kind: string;
@@ -2005,6 +2673,76 @@ export interface operations {
                     "application/json": {
                         [key: string]: unknown;
                     };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    run_simulation_api_v1_simulations_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-cornucopia-session"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SimulationIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    scenarios_api_v1_simulations_scenarios_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-cornucopia-session"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: string;
+                    }[];
                 };
             };
             /** @description Validation Error */
@@ -2118,6 +2856,28 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Liveness"];
+                };
+            };
+        };
+    };
+    health_agent_health_agent_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
                 };
             };
         };

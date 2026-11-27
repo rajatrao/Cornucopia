@@ -14,16 +14,17 @@ import sys
 
 from cornucopia.agent.supervisor import Worker
 from cornucopia.config import get_settings
+from cornucopia.logging_setup import configure
 from cornucopia.persistence.factory import build_client
 from cornucopia.persistence.repositories.operations import SupabaseOperationsRepository
 
 
 def main() -> int:
-    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
+    configure("cornucopia-worker")
     settings = get_settings()
     db = build_client(settings)
     org = SupabaseOperationsRepository(db).ensure_organization(settings.org_slug, settings.org_name)
-    worker = Worker(db, org.id)
+    worker = Worker(db, org.id, approval_ttl_minutes=settings.approval_ttl_minutes)
 
     def _stop(signum: int, _frame: object) -> None:
         logging.getLogger("cornucopia.worker").info("signal %s: stopping", signum)
