@@ -50,16 +50,9 @@ When resources are genuinely insufficient, it says so and escalates, for example
 
 **Live:** https://cornucopia-delta.vercel.app
 
+**Demo:** [Youtube](https://www.youtube.com/watch?v=M6FPRtBCAyE)
+
 > **Judges:** sign-in details are provided with the submission. The `judge` account can run the whole scenario, including approvals. `judge-viewer` is read-only, so you can see an unauthorized approval being refused.
-
-Follow [`DEMO_SCRIPT.md`](DEMO_SCRIPT.md) (≈ 5 min). The short version:
-
-1. **Events** → *Donation cancelled* → pick *Rice donation* → submit.
-2. **Agent / Recompilation**: watch the agent run on the Sprite and see the affected dependency graph.
-3. **Approvals**: review the plan (500 of 500 meals, quinoa replacing rice), tick the confirmation, approve. The agent commits it.
-4. **Events** → *Ingredient expired* → *Potatoes*: the agent escalates with the exact shortfall.
-5. **Simulation**: what-if scenarios on a copy of the state; production stays untouched.
-6. **Reset demo** (sidebar): start over with fresh sample data.
 
 ## Why it runs on a Fly.io Sprite
 
