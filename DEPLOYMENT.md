@@ -68,6 +68,8 @@ PGHOST=localhost PGPORT=54329 PGUSER=postgres scripts/verify_migrations_local.sh
 SPRITE=cornucopia SUPABASE_GATEWAY_URL=https://api.sprites.dev/v1/gateway/supabase/<connection-id> scripts/deploy_sprite.sh
 ```
 
+The script also (re)creates the `cornucopia-worker` service: the autonomous agent, `python -m cornucopia.worker`. It runs independently of the API and has no HTTP port. The Sprite runtime restarts it on crash and after a cold boot, and unfinished executions are resumed from Supabase through expired leases.
+
 The script packages `backend/` into a tarball, which excludes `.env` and virtualenvs. It uploads with `sprite file push`, runs `uv sync --frozen --no-dev` in a new release directory, and points `current` at that release. It then (re)creates the `cornucopia-api` Sprite service with `sprite-env services create ... --http-port 8000`, and smoke-tests `/health` inside the Sprite.
 
 On first deploy the script generates the API bearer token on the Sprite in `/home/sprite/.config/cornucopia/cornucopia.env` (mode 600). The Supabase key is never sent to the Sprite.
@@ -80,6 +82,10 @@ sprite exec -s cornucopia -- sprite-env services get cornucopia-api
 
 ```bash
 sprite exec -s cornucopia -- tail -n 50 /.sprite/logs/services/cornucopia-api.log
+```
+
+```bash
+sprite exec -s cornucopia -- tail -n 50 /.sprite/logs/services/cornucopia-worker.log
 ```
 
 ## Sample data (development / demonstration organizations only)

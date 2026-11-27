@@ -61,6 +61,16 @@ sprite exec -s "$SPRITE" --no-stdin -- bash -seuo pipefail -c "
     --dir \$BASE/current/backend \
     --http-port 8000 --duration 8s
 
+  # The autonomous agent: its own service, independent of the API and the
+  # frontend. Restarted by the Sprite runtime on crash and after cold boots;
+  # in-flight work is resumed from Supabase checkpoints via expired leases.
+  sprite-env services delete cornucopia-worker >/dev/null 2>&1 || true
+  sprite-env services create cornucopia-worker \
+    --cmd \$BASE/current/backend/.venv/bin/python \
+    --args -m,cornucopia.worker \
+    --dir \$BASE/current/backend \
+    --duration 6s
+
   # keep the 3 newest releases
   ls -1dt \$BASE/releases/* | tail -n +4 | xargs -r rm -rf
 "

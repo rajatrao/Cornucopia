@@ -70,6 +70,12 @@ class OperationsRepository(ABC):
     def optimization_results(self, run_id: UUID) -> builtins.list[Row]: ...
 
     @abstractmethod
+    def execution_steps(self, execution_id: UUID) -> builtins.list[Row]: ...
+
+    @abstractmethod
+    def checkpoints(self, org: UUID, thread_id: str) -> builtins.list[Row]: ...
+
+    @abstractmethod
     def record_optimization_run(
         self, org: UUID, actor: str, run: dict[str, Any], results: builtins.list[dict[str, Any]]
     ) -> UUID: ...
@@ -188,6 +194,20 @@ class SupabaseOperationsRepository(OperationsRepository):
         """Results of a run; callers must have checked the run's organization."""
         return self._db.select(
             "optimization_results", filters={"run_id": f"eq.{run_id}"}, order="candidate.asc"
+        )
+
+    def execution_steps(self, execution_id: UUID) -> builtins.list[Row]:
+        """Steps of an execution; callers must have checked its organization."""
+        return self._db.select(
+            "agent_execution_steps", filters={"execution_id": f"eq.{execution_id}"}, order="id.asc"
+        )
+
+    def checkpoints(self, org: UUID, thread_id: str) -> builtins.list[Row]:
+        return self._db.select(
+            "agent_checkpoints",
+            columns="thread_id,checkpoint_ns,checkpoint_id,parent_checkpoint_id,summary,created_at",
+            filters={"organization_id": f"eq.{org}", "thread_id": f"eq.{thread_id}"},
+            order="checkpoint_id.asc",
         )
 
     def record_optimization_run(

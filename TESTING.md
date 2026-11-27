@@ -89,3 +89,14 @@ Runs on a desktop and a mobile (Pixel 7) profile.
 | migrations | 5 reproduce an identical schema; `20261127034000_optimization_runs` applied |
 | live on the Sprite | OPTIMAL, verified partial 166/500 (40 lb quinoa replaces rice), diagnosis "Rice 80.0 lb short after substitutions", two runs give identical fingerprint and objectives, solver ≈ 28 ms, API ≈ 1 s |
 | Playwright (desktop + mobile, live) | 26 passed |
+
+## Phase 5 results (2026-11-27)
+
+| Check | Result |
+|---|---|
+| pytest (10 agent tests, 4 Postgres lease/checkpoint tests, all earlier suites) | 97 passed |
+| ruff, ruff format, mypy --strict | clean |
+| migrations | 6 reproduce an identical schema; `20261127040000_agent` applied |
+| live: backlog | worker service drained 48 journaled dev events autonomously, 0 failures; one execution interrupted by a redeploy resumed as attempt 2 |
+| live: kill drill | `sprite-env services signal cornucopia-worker KILL` right after `update_operational_state`; lease expired, the restarted worker resumed the same execution (attempt 2), finished the remaining nodes, and paused at `request_approval` with a verified 500/500 proposal; 14 checkpoints |
+| Playwright (desktop + mobile, live) | 28 passed (agent spec waits for the Sprite worker to finish an event, then checks the timeline) |

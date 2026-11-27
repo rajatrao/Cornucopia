@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.5.0 (2026-11-27): Phase 5 LangGraph autonomous agent
+
+- A 17-node LangGraph recovery agent with conditional routing, bounded strategy retries, node retry policies and explicit tool interfaces.
+- `SupabaseCheckpointSaver`: a custom LangGraph checkpointer over the connector's REST/RPC surface (immutable, idempotent).
+- Durable executions: lease-based claiming (`SKIP LOCKED`), heartbeat, attempt-fenced writes, crash recovery by lease expiry.
+- Idempotent optimization runs keyed by execution, strategy and retry.
+- `cornucopia-worker` Sprite service with a Sprites Tasks API keep-awake while running.
+- Agent status and execution history API, and an Agent page with a live workflow timeline.
+
 ## 0.4.0 (2026-11-27): Phase 4 CP-SAT recovery optimizer
 
 - CP-SAT model with exact rational ingredient needs, substitutions, rerouting and hard diet, stock, kitchen and route limits.
