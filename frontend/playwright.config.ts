@@ -5,6 +5,8 @@ import { defineConfig, devices } from "@playwright/test";
 export default defineConfig({
   testDir: "./e2e",
   timeout: 60_000,
+  // Specs share one live organization, so they must not interleave.
+  workers: 1,
   use: { baseURL: process.env.E2E_BASE_URL ?? "http://localhost:3100", trace: "off" },
   projects: [
     { name: "desktop", use: { ...devices["Desktop Chrome"] } },

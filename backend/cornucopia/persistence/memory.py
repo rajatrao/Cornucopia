@@ -28,6 +28,7 @@ class InMemorySupabaseClient(SupabaseClient):
         self.register_rpc("ensure_organization", _ensure_organization)
         self.register_rpc("write_resource", _write_resource)
         self.register_rpc("ingest_event", _ingest_event)
+        self.register_rpc("get_operational_snapshot", _snapshot)
 
     def register_rpc(self, name: str, fn: RpcFn) -> None:
         self._rpcs[name] = fn
@@ -91,6 +92,32 @@ def _record_probe(db: InMemorySupabaseClient, args: Mapping[str, Any]) -> JSON:
 
 _ORG_SCOPED_EXEMPT = {"recipe_ingredients", "meal_components"}
 
+# Server-side column defaults the real schema provides (see models.py).
+_DEFAULTS: dict[str, dict[str, Any]] = {
+    "deliveries": {"status": "scheduled", "delay_minutes": 0, "status_reason": None},
+    "commitments": {"status": "active", "version": 1, "diet_requirements": [], "delivery_id": None},
+    "volunteers": {
+        "available": True,
+        "available_hours": "4",
+        "unavailable_reason": None,
+        "team_id": None,
+    },
+    "preparation_teams": {"active": True},
+    "ingredients": {
+        "attributes": [],
+        "category": "other",
+        "density_g_per_ml": None,
+        "unit_weight_g": None,
+        "perishable_days": None,
+    },
+    "recipe_ingredients": {"optional": False},
+    "ingredient_substitutions": {"recipe_id": None, "notes": None},
+    "meal_components": {"portions": "1"},
+    "recipes": {"instructions": None},
+    "donors": {"kind": "individual", "contact": None},
+    "meals": {"description": None},
+}
+
 
 def _ensure_organization(db: InMemorySupabaseClient, args: Mapping[str, Any]) -> JSON:
     for org in db.tables.get("organizations", []):
@@ -120,7 +147,7 @@ def _write_resource(db: InMemorySupabaseClient, args: Mapping[str, Any]) -> JSON
     if action == "insert":
         if scoped:
             values["organization_id"] = org
-        row = db.insert(table, [{"updated_at": _now(), **values}])[0]
+        row = db.insert(table, [{"updated_at": _now(), **_DEFAULTS.get(table, {}), **values}])[0]
     else:
         match = [
             r
@@ -253,3 +280,35 @@ def _ingest_event(db: InMemorySupabaseClient, args: Mapping[str, Any]) -> JSON:
         ],
     )[0]
     return {"duplicate": False, "event": ev}
+
+
+_SNAPSHOT_TABLES = {
+    "ingredients": "ingredients",
+    "lots": "inventory_lots",
+    "donations": "donations",
+    "recipes": "recipes",
+    "recipe_ingredients": "recipe_ingredients",
+    "substitutions": "ingredient_substitutions",
+    "meals": "meals",
+    "meal_components": "meal_components",
+    "commitments": "commitments",
+    "teams": "preparation_teams",
+    "volunteers": "volunteers",
+    "deliveries": "deliveries",
+}
+
+
+def _snapshot(db: InMemorySupabaseClient, args: Mapping[str, Any]) -> JSON:
+    org = args["p_organization_id"]
+    state = [s for s in db.tables.get("operational_state", []) if s["organization_id"] == org]
+    out: dict[str, Any] = {
+        "organization_id": org,
+        "as_of": _now(),
+        "state_version": state[0]["version"] if state else 0,
+    }
+    for key, table in _SNAPSHOT_TABLES.items():
+        rows = db.tables.get(table, [])
+        if table not in _ORG_SCOPED_EXEMPT:
+            rows = [r for r in rows if r.get("organization_id") == org]
+        out[key] = copy.deepcopy(rows)
+    return out

@@ -5,6 +5,7 @@ const LINKS = [
   { href: "/resources", label: "Resources" },
   { href: "/inventory", label: "Inventory" },
   { href: "/events", label: "Event Center" },
+  { href: "/compiler", label: "Compiler" },
   { href: "/history", label: "Audit history" },
 ];
 

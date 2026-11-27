@@ -7,6 +7,7 @@ Schema: `cornucopia` (Supabase Postgres 17). Source of truth: SQLAlchemy models 
 | `20261127000100_foundation` | `organizations`, `system_probes`, `health_check()`, `record_probe()` |
 | `20261127030000_domain_events` | domain tables, operational journal, audit log, triggers, `ensure_organization()`, `ingest_event()` |
 | `20261127031500_resource_writes` | `write_resource()`, removal of direct table writes |
+| `20261127032000_snapshot` | `get_operational_snapshot()`: one consistent read for the compiler |
 
 ## Conventions
 
@@ -44,5 +45,6 @@ Schema: `cornucopia` (Supabase Postgres 17). Source of truth: SQLAlchemy models 
 | `ingest_event(org, key, type, payload, actor, correlation_id)` | Serialises on the idempotency key (advisory lock). Returns the original event for a duplicate with the same payload, and raises `P0409` for a reused key with a different payload. Otherwise it applies the fact, journals it with its `effect` and the new state version, and audits every row it touched. All of this happens in one transaction. |
 | `write_resource(org, actor, table, action, id, values)` | Insert/update/delete for master data on a whitelist of tables. Enforces org ownership (including through parent rows), sets the actor and refuses server-managed fields. |
 | `current_actor()` | actor for audit triggers |
+| `get_operational_snapshot(org)` | every planning input plus the state version, in one statement (one gateway round trip, one consistent snapshot) |
 
 Custom SQLSTATEs: `P0403` forbidden, `P0404` not found, `P0409` conflict, `P0422` invalid. The API maps them to HTTP status codes.

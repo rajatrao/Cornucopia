@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.3.0 (2026-11-27): Phase 3 deterministic resource compiler
+
+- `get_operational_snapshot` RPC: one consistent read of all planning inputs.
+- Calculators for recipe requirements, dietary rules, availability (including expiry by date), FIFO allocation, preparation capacity (staffing-aware) and delivery capacity.
+- Baseline planner that records the binding resource per commitment.
+- Independent plan validator, canonical plan fingerprint and deterministic plan comparison.
+- Substitution engine checked against recipe scope, every affected diet and spare stock.
+- NetworkX dependency graph with impact analysis for all nine event types.
+- API: `/compiler/plan`, `/compiler/impact/{event}`, `/compiler/graph`. New Compiler page.
+- `scripts/seed_sample.py`: labelled sample Thanksgiving operation loaded through the API.
+
 ## 0.2.0 (2026-11-27): Phase 2 domain model and operational event engine
 
 - Unit engine with exact Decimal conversions. Mass/volume needs a density and count/mass needs a unit weight; portions never convert.

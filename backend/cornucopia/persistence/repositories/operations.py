@@ -63,6 +63,9 @@ class OperationsRepository(ABC):
     ) -> Row: ...
 
     @abstractmethod
+    def snapshot(self, org: UUID) -> dict[str, Any]: ...
+
+    @abstractmethod
     def ingest_event(
         self,
         org: UUID,
@@ -165,6 +168,12 @@ class SupabaseOperationsRepository(OperationsRepository):
             },
         )
         return IngestResult.model_validate(raw)
+
+    def snapshot(self, org: UUID) -> dict[str, Any]:
+        raw: dict[str, Any] = self._db.rpc(
+            "get_operational_snapshot", {"p_organization_id": str(org)}
+        )
+        return raw
 
 
 def new_correlation_id() -> UUID:

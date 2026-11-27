@@ -21,6 +21,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/compiler/graph": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Graph */
+        get: operations["graph_api_v1_compiler_graph_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/compiler/impact/{event_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Event Impact */
+        get: operations["event_impact_api_v1_compiler_impact__event_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/compiler/plan": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Baseline */
+        get: operations["baseline_api_v1_compiler_plan_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/events": {
         parameters: {
             query?: never;
@@ -233,6 +284,21 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** Allocation */
+        Allocation: {
+            /**
+             * Ingredient Id
+             * Format: uuid
+             */
+            ingredient_id: string;
+            /**
+             * Lot Id
+             * Format: uuid
+             */
+            lot_id: string;
+            /** Quantity Base */
+            quantity_base: string;
+        };
         /** AuditOut */
         AuditOut: {
             /** Action */
@@ -275,6 +341,47 @@ export interface components {
              * @enum {string}
              */
             type: "COMMITMENT_CHANGED";
+        };
+        /** CommitmentPlan */
+        CommitmentPlan: {
+            /**
+             * Commitment Id
+             * Format: uuid
+             */
+            commitment_id: string;
+            /** Delivery Id */
+            delivery_id: string | null;
+            /**
+             * Limited By
+             * @default []
+             */
+            limited_by: string[];
+            /**
+             * Meal Id
+             * Format: uuid
+             */
+            meal_id: string;
+            /**
+             * Omitted Optional
+             * @default []
+             */
+            omitted_optional: string[];
+            /** Planned */
+            planned: number;
+            /** Recipient */
+            recipient: string;
+            /** Requested */
+            requested: number;
+            /**
+             * Risks
+             * @default []
+             */
+            risks: string[];
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "feasible" | "partial" | "infeasible";
         };
         /** DbHealthOut */
         DbHealthOut: {
@@ -325,6 +432,18 @@ export interface components {
              * @enum {string}
              */
             type: "DELIVERY_DELAYED";
+        };
+        /** DeliveryLoad */
+        DeliveryLoad: {
+            /** Capacity */
+            capacity: number;
+            /**
+             * Delivery Id
+             * Format: uuid
+             */
+            delivery_id: string;
+            /** Meals */
+            meals: number;
         };
         /**
          * Diet
@@ -455,16 +574,93 @@ export interface components {
             /** State Version */
             state_version: number;
         };
+        /** GraphOut */
+        GraphOut: {
+            /** Edges */
+            edges: {
+                [key: string]: unknown;
+            }[];
+            /** Nodes */
+            nodes: {
+                [key: string]: unknown;
+            }[];
+        };
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
+        };
+        /** Impact */
+        Impact: {
+            /** Affected Commitments */
+            affected_commitments: string[];
+            /** Counts */
+            counts: {
+                [key: string]: number;
+            };
+            /** Edges */
+            edges: components["schemas"]["ImpactEdge"][];
+            /** Nodes */
+            nodes: components["schemas"]["ImpactNode"][];
+            /** Origins */
+            origins: string[];
+        };
+        /** ImpactEdge */
+        ImpactEdge: {
+            /** Rel */
+            rel: string;
+            /** Source */
+            source: string;
+            /** Target */
+            target: string;
+        };
+        /** ImpactNode */
+        ImpactNode: {
+            /** Id */
+            id: string;
+            /** Kind */
+            kind: string;
+            /** Label */
+            label: string;
+            /** Role */
+            role: string;
+        };
+        /** ImpactReport */
+        ImpactReport: {
+            /**
+             * Event Id
+             * Format: uuid
+             */
+            event_id: string;
+            /** Event Type */
+            event_type: string;
+            impact: components["schemas"]["Impact"];
+            /** State Version */
+            state_version: number;
         };
         /** IngestOut */
         IngestOut: {
             /** Duplicate */
             duplicate: boolean;
             event: components["schemas"]["EventOut"];
+        };
+        /** IngredientBalance */
+        IngredientBalance: {
+            /** Available Base */
+            available_base: string;
+            /** Base Unit */
+            base_unit: string;
+            /**
+             * Ingredient Id
+             * Format: uuid
+             */
+            ingredient_id: string;
+            /** Name */
+            name: string;
+            /** Planned Base */
+            planned_base: string;
+            /** Required Base */
+            required_base: string;
         };
         /** IngredientExpired */
         IngredientExpired: {
@@ -577,6 +773,90 @@ export interface components {
             /** State Version */
             state_version: number;
         };
+        /**
+         * Plan
+         * @description A plan is a proposal. Being computed or even validated never makes it
+         *     approved or committed; those states live in the approval engine.
+         */
+        Plan: {
+            /** Allocations */
+            allocations: components["schemas"]["Allocation"][];
+            /**
+             * As Of
+             * Format: date-time
+             */
+            as_of: string;
+            /** Commitments */
+            commitments: components["schemas"]["CommitmentPlan"][];
+            /** Deliveries */
+            deliveries: components["schemas"]["DeliveryLoad"][];
+            /** Include Pledged */
+            include_pledged: boolean;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "baseline" | "optimized";
+            metrics: components["schemas"]["PlanMetrics"];
+            /**
+             * Organization Id
+             * Format: uuid
+             */
+            organization_id: string;
+            /** Recipes */
+            recipes: components["schemas"]["RecipePlan"][];
+            /** Shortages */
+            shortages: components["schemas"]["Shortage"][];
+            /** State Version */
+            state_version: number;
+            /**
+             * Substitutions
+             * @default []
+             */
+            substitutions: components["schemas"]["SubstitutionUse"][];
+            /** Teams */
+            teams: components["schemas"]["TeamLoad"][];
+        };
+        /** PlanMetrics */
+        PlanMetrics: {
+            /** Commitments Feasible */
+            commitments_feasible: number;
+            /** Commitments Infeasible */
+            commitments_infeasible: number;
+            /** Commitments Partial */
+            commitments_partial: number;
+            /** Commitments Total */
+            commitments_total: number;
+            /** Ingredient Base Allocated */
+            ingredient_base_allocated: string;
+            /** Ingredient Base Available */
+            ingredient_base_available: string;
+            /** Meals Planned */
+            meals_planned: number;
+            /** Meals Requested */
+            meals_requested: number;
+            /** Portions Planned */
+            portions_planned: number;
+            /** Prep Capacity Portions */
+            prep_capacity_portions: number;
+        };
+        /** PlanReport */
+        PlanReport: {
+            /** Fingerprint */
+            fingerprint: string;
+            /** Ingredients */
+            ingredients: components["schemas"]["IngredientBalance"][];
+            /** Labels */
+            labels: {
+                [key: string]: string;
+            };
+            plan: components["schemas"]["Plan"];
+            /** Substitution Suggestions */
+            substitution_suggestions: components["schemas"]["SubstitutionSuggestion"][];
+            /** Teams */
+            teams: components["schemas"]["TeamOut"][];
+            validation: components["schemas"]["Validation"];
+        };
         /** PreparationCapacityChanged */
         PreparationCapacityChanged: {
             /** Active */
@@ -620,6 +900,32 @@ export interface components {
             /** Source */
             source: string;
         };
+        /** RecipePlan */
+        RecipePlan: {
+            /** Batches */
+            batches: string;
+            /** Portions */
+            portions: string;
+            /**
+             * Recipe Id
+             * Format: uuid
+             */
+            recipe_id: string;
+        };
+        /** Shortage */
+        Shortage: {
+            /** Available Base */
+            available_base: string;
+            /**
+             * Ingredient Id
+             * Format: uuid
+             */
+            ingredient_id: string;
+            /** Missing Base */
+            missing_base: string;
+            /** Required Base */
+            required_base: string;
+        };
         /** StockOut */
         StockOut: {
             /** Available Base */
@@ -645,11 +951,102 @@ export interface components {
             /** Pledged Base */
             pledged_base: string;
         };
+        /** SubstitutionSuggestion */
+        SubstitutionSuggestion: {
+            /**
+             * Ingredient Id
+             * Format: uuid
+             */
+            ingredient_id: string;
+            /** Max Replaceable Base */
+            max_replaceable_base: string;
+            /** Ratio */
+            ratio: string;
+            /**
+             * Recipe Id
+             * Format: uuid
+             */
+            recipe_id: string;
+            /**
+             * Substitute Id
+             * Format: uuid
+             */
+            substitute_id: string;
+            /** Substitute Spare Base */
+            substitute_spare_base: string;
+            /**
+             * Substitution Id
+             * Format: uuid
+             */
+            substitution_id: string;
+        };
+        /** SubstitutionUse */
+        SubstitutionUse: {
+            /**
+             * Ingredient Id
+             * Format: uuid
+             */
+            ingredient_id: string;
+            /**
+             * Recipe Id
+             * Format: uuid
+             */
+            recipe_id: string;
+            /** Replaced Base */
+            replaced_base: string;
+            /** Substitute Base */
+            substitute_base: string;
+            /**
+             * Substitute Id
+             * Format: uuid
+             */
+            substitute_id: string;
+            /**
+             * Substitution Id
+             * Format: uuid
+             */
+            substitution_id: string;
+        };
+        /** TeamLoad */
+        TeamLoad: {
+            /** Capacity */
+            capacity: number;
+            /** Portions */
+            portions: number;
+            /**
+             * Team Id
+             * Format: uuid
+             */
+            team_id: string;
+        };
+        /** TeamOut */
+        TeamOut: {
+            /** Capacity Portions */
+            capacity_portions: number;
+            /** Name */
+            name: string;
+            /** Notes */
+            notes: string[];
+            /**
+             * Team Id
+             * Format: uuid
+             */
+            team_id: string;
+        };
         /**
          * Unit
          * @enum {string}
          */
         Unit: "g" | "kg" | "oz" | "lb" | "ml" | "l" | "tsp" | "tbsp" | "cup" | "fl_oz" | "qt" | "gal" | "each" | "portion";
+        /** Validation */
+        Validation: {
+            /** Checks */
+            checks: number;
+            /** Valid */
+            valid: boolean;
+            /** Violations */
+            violations: string[];
+        };
         /** ValidationError */
         ValidationError: {
             /** Context */
@@ -705,6 +1102,88 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AuditOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    graph_api_v1_compiler_graph_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GraphOut"];
+                };
+            };
+        };
+    };
+    event_impact_api_v1_compiler_impact__event_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                event_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImpactReport"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    baseline_api_v1_compiler_plan_get: {
+        parameters: {
+            query?: {
+                include_pledged?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlanReport"];
                 };
             };
             /** @description Validation Error */

@@ -1,6 +1,31 @@
 {
   "components": {
     "schemas": {
+      "Allocation": {
+        "properties": {
+          "ingredient_id": {
+            "format": "uuid",
+            "title": "Ingredient Id",
+            "type": "string"
+          },
+          "lot_id": {
+            "format": "uuid",
+            "title": "Lot Id",
+            "type": "string"
+          },
+          "quantity_base": {
+            "title": "Quantity Base",
+            "type": "string"
+          }
+        },
+        "required": [
+          "lot_id",
+          "ingredient_id",
+          "quantity_base"
+        ],
+        "title": "Allocation",
+        "type": "object"
+      },
       "AuditOut": {
         "properties": {
           "action": {
@@ -134,6 +159,88 @@
         "title": "CommitmentChanged",
         "type": "object"
       },
+      "CommitmentPlan": {
+        "properties": {
+          "commitment_id": {
+            "format": "uuid",
+            "title": "Commitment Id",
+            "type": "string"
+          },
+          "delivery_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Delivery Id"
+          },
+          "limited_by": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Limited By",
+            "type": "array"
+          },
+          "meal_id": {
+            "format": "uuid",
+            "title": "Meal Id",
+            "type": "string"
+          },
+          "omitted_optional": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Omitted Optional",
+            "type": "array"
+          },
+          "planned": {
+            "title": "Planned",
+            "type": "integer"
+          },
+          "recipient": {
+            "title": "Recipient",
+            "type": "string"
+          },
+          "requested": {
+            "title": "Requested",
+            "type": "integer"
+          },
+          "risks": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Risks",
+            "type": "array"
+          },
+          "status": {
+            "enum": [
+              "feasible",
+              "partial",
+              "infeasible"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "commitment_id",
+          "recipient",
+          "meal_id",
+          "requested",
+          "planned",
+          "status",
+          "delivery_id"
+        ],
+        "title": "CommitmentPlan",
+        "type": "object"
+      },
       "DbHealthOut": {
         "properties": {
           "db_schema": {
@@ -250,6 +357,30 @@
           "reason"
         ],
         "title": "DeliveryDelayed",
+        "type": "object"
+      },
+      "DeliveryLoad": {
+        "properties": {
+          "capacity": {
+            "title": "Capacity",
+            "type": "integer"
+          },
+          "delivery_id": {
+            "format": "uuid",
+            "title": "Delivery Id",
+            "type": "string"
+          },
+          "meals": {
+            "title": "Meals",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "delivery_id",
+          "meals",
+          "capacity"
+        ],
+        "title": "DeliveryLoad",
         "type": "object"
       },
       "Diet": {
@@ -660,6 +791,32 @@
         "title": "EventOut",
         "type": "object"
       },
+      "GraphOut": {
+        "properties": {
+          "edges": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Edges",
+            "type": "array"
+          },
+          "nodes": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Nodes",
+            "type": "array"
+          }
+        },
+        "required": [
+          "nodes",
+          "edges"
+        ],
+        "title": "GraphOut",
+        "type": "object"
+      },
       "HTTPValidationError": {
         "properties": {
           "detail": {
@@ -671,6 +828,133 @@
           }
         },
         "title": "HTTPValidationError",
+        "type": "object"
+      },
+      "Impact": {
+        "properties": {
+          "affected_commitments": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Affected Commitments",
+            "type": "array"
+          },
+          "counts": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Counts",
+            "type": "object"
+          },
+          "edges": {
+            "items": {
+              "$ref": "#/components/schemas/ImpactEdge"
+            },
+            "title": "Edges",
+            "type": "array"
+          },
+          "nodes": {
+            "items": {
+              "$ref": "#/components/schemas/ImpactNode"
+            },
+            "title": "Nodes",
+            "type": "array"
+          },
+          "origins": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Origins",
+            "type": "array"
+          }
+        },
+        "required": [
+          "origins",
+          "nodes",
+          "edges",
+          "affected_commitments",
+          "counts"
+        ],
+        "title": "Impact",
+        "type": "object"
+      },
+      "ImpactEdge": {
+        "properties": {
+          "rel": {
+            "title": "Rel",
+            "type": "string"
+          },
+          "source": {
+            "title": "Source",
+            "type": "string"
+          },
+          "target": {
+            "title": "Target",
+            "type": "string"
+          }
+        },
+        "required": [
+          "source",
+          "target",
+          "rel"
+        ],
+        "title": "ImpactEdge",
+        "type": "object"
+      },
+      "ImpactNode": {
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "role": {
+            "title": "Role",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "label",
+          "role"
+        ],
+        "title": "ImpactNode",
+        "type": "object"
+      },
+      "ImpactReport": {
+        "properties": {
+          "event_id": {
+            "format": "uuid",
+            "title": "Event Id",
+            "type": "string"
+          },
+          "event_type": {
+            "title": "Event Type",
+            "type": "string"
+          },
+          "impact": {
+            "$ref": "#/components/schemas/Impact"
+          },
+          "state_version": {
+            "title": "State Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "event_id",
+          "event_type",
+          "state_version",
+          "impact"
+        ],
+        "title": "ImpactReport",
         "type": "object"
       },
       "IngestOut": {
@@ -688,6 +972,45 @@
           "event"
         ],
         "title": "IngestOut",
+        "type": "object"
+      },
+      "IngredientBalance": {
+        "properties": {
+          "available_base": {
+            "title": "Available Base",
+            "type": "string"
+          },
+          "base_unit": {
+            "title": "Base Unit",
+            "type": "string"
+          },
+          "ingredient_id": {
+            "format": "uuid",
+            "title": "Ingredient Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "planned_base": {
+            "title": "Planned Base",
+            "type": "string"
+          },
+          "required_base": {
+            "title": "Required Base",
+            "type": "string"
+          }
+        },
+        "required": [
+          "ingredient_id",
+          "name",
+          "base_unit",
+          "required_base",
+          "available_base",
+          "planned_base"
+        ],
+        "title": "IngredientBalance",
         "type": "object"
       },
       "IngredientExpired": {
@@ -945,6 +1268,217 @@
         "title": "OrgOut",
         "type": "object"
       },
+      "Plan": {
+        "description": "A plan is a proposal. Being computed or even validated never makes it\napproved or committed; those states live in the approval engine.",
+        "properties": {
+          "allocations": {
+            "items": {
+              "$ref": "#/components/schemas/Allocation"
+            },
+            "title": "Allocations",
+            "type": "array"
+          },
+          "as_of": {
+            "format": "date-time",
+            "title": "As Of",
+            "type": "string"
+          },
+          "commitments": {
+            "items": {
+              "$ref": "#/components/schemas/CommitmentPlan"
+            },
+            "title": "Commitments",
+            "type": "array"
+          },
+          "deliveries": {
+            "items": {
+              "$ref": "#/components/schemas/DeliveryLoad"
+            },
+            "title": "Deliveries",
+            "type": "array"
+          },
+          "include_pledged": {
+            "title": "Include Pledged",
+            "type": "boolean"
+          },
+          "kind": {
+            "enum": [
+              "baseline",
+              "optimized"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "metrics": {
+            "$ref": "#/components/schemas/PlanMetrics"
+          },
+          "organization_id": {
+            "format": "uuid",
+            "title": "Organization Id",
+            "type": "string"
+          },
+          "recipes": {
+            "items": {
+              "$ref": "#/components/schemas/RecipePlan"
+            },
+            "title": "Recipes",
+            "type": "array"
+          },
+          "shortages": {
+            "items": {
+              "$ref": "#/components/schemas/Shortage"
+            },
+            "title": "Shortages",
+            "type": "array"
+          },
+          "state_version": {
+            "title": "State Version",
+            "type": "integer"
+          },
+          "substitutions": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/SubstitutionUse"
+            },
+            "title": "Substitutions",
+            "type": "array"
+          },
+          "teams": {
+            "items": {
+              "$ref": "#/components/schemas/TeamLoad"
+            },
+            "title": "Teams",
+            "type": "array"
+          }
+        },
+        "required": [
+          "kind",
+          "organization_id",
+          "state_version",
+          "as_of",
+          "include_pledged",
+          "commitments",
+          "recipes",
+          "allocations",
+          "teams",
+          "deliveries",
+          "shortages",
+          "metrics"
+        ],
+        "title": "Plan",
+        "type": "object"
+      },
+      "PlanMetrics": {
+        "properties": {
+          "commitments_feasible": {
+            "title": "Commitments Feasible",
+            "type": "integer"
+          },
+          "commitments_infeasible": {
+            "title": "Commitments Infeasible",
+            "type": "integer"
+          },
+          "commitments_partial": {
+            "title": "Commitments Partial",
+            "type": "integer"
+          },
+          "commitments_total": {
+            "title": "Commitments Total",
+            "type": "integer"
+          },
+          "ingredient_base_allocated": {
+            "title": "Ingredient Base Allocated",
+            "type": "string"
+          },
+          "ingredient_base_available": {
+            "title": "Ingredient Base Available",
+            "type": "string"
+          },
+          "meals_planned": {
+            "title": "Meals Planned",
+            "type": "integer"
+          },
+          "meals_requested": {
+            "title": "Meals Requested",
+            "type": "integer"
+          },
+          "portions_planned": {
+            "title": "Portions Planned",
+            "type": "integer"
+          },
+          "prep_capacity_portions": {
+            "title": "Prep Capacity Portions",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "meals_requested",
+          "meals_planned",
+          "commitments_total",
+          "commitments_feasible",
+          "commitments_partial",
+          "commitments_infeasible",
+          "portions_planned",
+          "prep_capacity_portions",
+          "ingredient_base_allocated",
+          "ingredient_base_available"
+        ],
+        "title": "PlanMetrics",
+        "type": "object"
+      },
+      "PlanReport": {
+        "properties": {
+          "fingerprint": {
+            "title": "Fingerprint",
+            "type": "string"
+          },
+          "ingredients": {
+            "items": {
+              "$ref": "#/components/schemas/IngredientBalance"
+            },
+            "title": "Ingredients",
+            "type": "array"
+          },
+          "labels": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Labels",
+            "type": "object"
+          },
+          "plan": {
+            "$ref": "#/components/schemas/Plan"
+          },
+          "substitution_suggestions": {
+            "items": {
+              "$ref": "#/components/schemas/SubstitutionSuggestion"
+            },
+            "title": "Substitution Suggestions",
+            "type": "array"
+          },
+          "teams": {
+            "items": {
+              "$ref": "#/components/schemas/TeamOut"
+            },
+            "title": "Teams",
+            "type": "array"
+          },
+          "validation": {
+            "$ref": "#/components/schemas/Validation"
+          }
+        },
+        "required": [
+          "plan",
+          "fingerprint",
+          "validation",
+          "labels",
+          "ingredients",
+          "teams",
+          "substitution_suggestions"
+        ],
+        "title": "PlanReport",
+        "type": "object"
+      },
       "PreparationCapacityChanged": {
         "additionalProperties": false,
         "properties": {
@@ -1061,6 +1595,59 @@
         "title": "ProbeOut",
         "type": "object"
       },
+      "RecipePlan": {
+        "properties": {
+          "batches": {
+            "title": "Batches",
+            "type": "string"
+          },
+          "portions": {
+            "title": "Portions",
+            "type": "string"
+          },
+          "recipe_id": {
+            "format": "uuid",
+            "title": "Recipe Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "recipe_id",
+          "portions",
+          "batches"
+        ],
+        "title": "RecipePlan",
+        "type": "object"
+      },
+      "Shortage": {
+        "properties": {
+          "available_base": {
+            "title": "Available Base",
+            "type": "string"
+          },
+          "ingredient_id": {
+            "format": "uuid",
+            "title": "Ingredient Id",
+            "type": "string"
+          },
+          "missing_base": {
+            "title": "Missing Base",
+            "type": "string"
+          },
+          "required_base": {
+            "title": "Required Base",
+            "type": "string"
+          }
+        },
+        "required": [
+          "ingredient_id",
+          "required_base",
+          "available_base",
+          "missing_base"
+        ],
+        "title": "Shortage",
+        "type": "object"
+      },
       "StockOut": {
         "properties": {
           "available_base": {
@@ -1127,6 +1714,151 @@
         "title": "StockOut",
         "type": "object"
       },
+      "SubstitutionSuggestion": {
+        "properties": {
+          "ingredient_id": {
+            "format": "uuid",
+            "title": "Ingredient Id",
+            "type": "string"
+          },
+          "max_replaceable_base": {
+            "title": "Max Replaceable Base",
+            "type": "string"
+          },
+          "ratio": {
+            "title": "Ratio",
+            "type": "string"
+          },
+          "recipe_id": {
+            "format": "uuid",
+            "title": "Recipe Id",
+            "type": "string"
+          },
+          "substitute_id": {
+            "format": "uuid",
+            "title": "Substitute Id",
+            "type": "string"
+          },
+          "substitute_spare_base": {
+            "title": "Substitute Spare Base",
+            "type": "string"
+          },
+          "substitution_id": {
+            "format": "uuid",
+            "title": "Substitution Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "substitution_id",
+          "recipe_id",
+          "ingredient_id",
+          "substitute_id",
+          "ratio",
+          "substitute_spare_base",
+          "max_replaceable_base"
+        ],
+        "title": "SubstitutionSuggestion",
+        "type": "object"
+      },
+      "SubstitutionUse": {
+        "properties": {
+          "ingredient_id": {
+            "format": "uuid",
+            "title": "Ingredient Id",
+            "type": "string"
+          },
+          "recipe_id": {
+            "format": "uuid",
+            "title": "Recipe Id",
+            "type": "string"
+          },
+          "replaced_base": {
+            "title": "Replaced Base",
+            "type": "string"
+          },
+          "substitute_base": {
+            "title": "Substitute Base",
+            "type": "string"
+          },
+          "substitute_id": {
+            "format": "uuid",
+            "title": "Substitute Id",
+            "type": "string"
+          },
+          "substitution_id": {
+            "format": "uuid",
+            "title": "Substitution Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "substitution_id",
+          "recipe_id",
+          "ingredient_id",
+          "substitute_id",
+          "replaced_base",
+          "substitute_base"
+        ],
+        "title": "SubstitutionUse",
+        "type": "object"
+      },
+      "TeamLoad": {
+        "properties": {
+          "capacity": {
+            "title": "Capacity",
+            "type": "integer"
+          },
+          "portions": {
+            "title": "Portions",
+            "type": "integer"
+          },
+          "team_id": {
+            "format": "uuid",
+            "title": "Team Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "team_id",
+          "portions",
+          "capacity"
+        ],
+        "title": "TeamLoad",
+        "type": "object"
+      },
+      "TeamOut": {
+        "properties": {
+          "capacity_portions": {
+            "title": "Capacity Portions",
+            "type": "integer"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "notes": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Notes",
+            "type": "array"
+          },
+          "team_id": {
+            "format": "uuid",
+            "title": "Team Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "team_id",
+          "name",
+          "capacity_portions",
+          "notes"
+        ],
+        "title": "TeamOut",
+        "type": "object"
+      },
       "Unit": {
         "enum": [
           "g",
@@ -1146,6 +1878,32 @@
         ],
         "title": "Unit",
         "type": "string"
+      },
+      "Validation": {
+        "properties": {
+          "checks": {
+            "title": "Checks",
+            "type": "integer"
+          },
+          "valid": {
+            "title": "Valid",
+            "type": "boolean"
+          },
+          "violations": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Violations",
+            "type": "array"
+          }
+        },
+        "required": [
+          "valid",
+          "checks",
+          "violations"
+        ],
+        "title": "Validation",
+        "type": "object"
       },
       "ValidationError": {
         "properties": {
@@ -1225,7 +1983,7 @@
   },
   "info": {
     "title": "CORNUCOPIA API",
-    "version": "0.2.0"
+    "version": "0.3.0"
   },
   "openapi": "3.1.0",
   "paths": {
@@ -1278,6 +2036,128 @@
         "summary": "Audit",
         "tags": [
           "operations"
+        ]
+      }
+    },
+    "/api/v1/compiler/graph": {
+      "get": {
+        "operationId": "graph_api_v1_compiler_graph_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GraphOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Graph",
+        "tags": [
+          "compiler"
+        ]
+      }
+    },
+    "/api/v1/compiler/impact/{event_id}": {
+      "get": {
+        "operationId": "event_impact_api_v1_compiler_impact__event_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "event_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Event Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImpactReport"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Event Impact",
+        "tags": [
+          "compiler"
+        ]
+      }
+    },
+    "/api/v1/compiler/plan": {
+      "get": {
+        "operationId": "baseline_api_v1_compiler_plan_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "include_pledged",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Include Pledged",
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlanReport"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Baseline",
+        "tags": [
+          "compiler"
         ]
       }
     },
