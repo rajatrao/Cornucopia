@@ -36,12 +36,19 @@ async function call<T>(path: string, init: RequestInit = {}): Promise<T> {
   headers.set("Accept", "application/json");
   if (token) headers.set("Authorization", `Bearer ${token}`);
   if (init.body) headers.set("Content-Type", "application/json");
-  const res = await fetch(`${baseUrl}${path}`, {
-    ...init,
-    headers,
-    cache: "no-store",
-    signal: AbortSignal.timeout(20_000),
-  });
+  // A Sprite that was paused wakes on the first request; an idempotent read is
+  // retried once so a slow wake does not surface as an outage.
+  const attempts = (init.method ?? "GET") === "GET" ? 2 : 1;
+  let res: Response | undefined;
+  for (let i = 0; i < attempts; i++) {
+    try {
+      res = await fetch(`${baseUrl}${path}`, { ...init, headers, cache: "no-store", signal: AbortSignal.timeout(15_000) });
+      if (res.status < 500 || i === attempts - 1) break;
+    } catch (err) {
+      if (i === attempts - 1) throw err;
+    }
+  }
+  if (!res) throw new ApiError(502, `API unreachable on ${path}`);
   if (!res.ok) {
     const detail = await res.text().catch(() => "");
     throw new ApiError(res.status, `API ${res.status} on ${path}: ${detail.slice(0, 200)}`);

@@ -29,6 +29,7 @@ from cornucopia.compiler.plan import (
     Plan,
     PlanMetrics,
     RecipePlan,
+    RouteAssignment,
     Shortage,
     TeamLoad,
 )
@@ -213,8 +214,14 @@ def compile_baseline(snap: OperationalSnapshot, *, include_pledged: bool = False
         ingredient_base_allocated=sum((a.quantity_base for a in allocations), ZERO),
         ingredient_base_available=sum(avail.values(), ZERO),
     )
+    routing = tuple(
+        RouteAssignment(commitment_id=c.commitment_id, delivery_id=c.delivery_id, meals=c.planned)
+        for c in sorted(commitments, key=lambda x: str(x.commitment_id))
+        if c.delivery_id is not None and c.planned > 0
+    )
     return Plan(
         kind="baseline",
+        routing=routing,
         organization_id=snap.organization_id,
         state_version=snap.state_version,
         as_of=snap.as_of,

@@ -50,6 +50,18 @@ class SubstitutionUse(_P):
     substitute_base: Decimal  # of the substitute (replaced x ratio, rounded up)
 
 
+class RouteAssignment(_P):
+    """Meals of a commitment carried on a delivery route.
+
+    The baseline keeps every commitment on its assigned route; the optimizer
+    may move meals to another usable route (a plan change needing approval).
+    """
+
+    commitment_id: UUID
+    delivery_id: UUID
+    meals: int
+
+
 class TeamLoad(_P):
     team_id: UUID
     portions: int
@@ -95,6 +107,7 @@ class Plan(_P):
     recipes: tuple[RecipePlan, ...]
     allocations: tuple[Allocation, ...]
     substitutions: tuple[SubstitutionUse, ...] = ()
+    routing: tuple[RouteAssignment, ...] = ()
     teams: tuple[TeamLoad, ...]
     deliveries: tuple[DeliveryLoad, ...]
     shortages: tuple[Shortage, ...]

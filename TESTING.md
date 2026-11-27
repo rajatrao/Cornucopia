@@ -79,3 +79,13 @@ Runs on a desktop and a mobile (Pixel 7) profile.
 | migrations | 4 reproduce an identical schema; `supabase db push` applied `20261127032000_snapshot` |
 | live on the Sprite via connector | sample data seeded → baseline 500/500 valid; rice donation cancelled → 0/500, rice short 120.0 lb, quinoa suggested (max 40 lb), impact = 1 donation, 1 lot, 1 ingredient, 1 recipe, 1 batch, 1 meal, 3 commitments; `/compiler/plan` ≈ 0.5 s end to end |
 | Playwright (desktop + mobile, serial on live org) | 22 passed |
+
+## Phase 4 results (2026-11-27)
+
+| Check | Result |
+|---|---|
+| pytest (10 optimizer tests + API + DB-level) | 83 passed |
+| ruff, ruff format, mypy --strict | clean |
+| migrations | 5 reproduce an identical schema; `20261127034000_optimization_runs` applied |
+| live on the Sprite | OPTIMAL, verified partial 166/500 (40 lb quinoa replaces rice), diagnosis "Rice 80.0 lb short after substitutions", two runs give identical fingerprint and objectives, solver ≈ 28 ms, API ≈ 1 s |
+| Playwright (desktop + mobile, live) | 26 passed |

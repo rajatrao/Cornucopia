@@ -479,3 +479,58 @@ class AuditRecord(Base):
         CheckConstraint("action in ('INSERT','UPDATE','DELETE')", name="action"),
         Index("ix_audit_records_table_record", "table_name", "record_id"),
     )
+
+
+# --------------------------------------------------------------------------
+# Phase 4: optimization runs (append-only record of every solver execution)
+# --------------------------------------------------------------------------
+
+
+class OptimizationRun(Base):
+    __tablename__ = "optimization_runs"
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    organization_id: Mapped[uuid.UUID] = _org_fk()
+    state_version: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    requested_by: Mapped[str] = mapped_column(String(120), nullable=False)
+    correlation_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True))
+    config: Mapped[dict[str, object]] = mapped_column(JSONB, nullable=False)
+    solver_status: Mapped[str] = mapped_column(String(24), nullable=False)
+    verdict: Mapped[str] = mapped_column(String(24), nullable=False)
+    objectives: Mapped[dict[str, object]] = mapped_column(JSONB, nullable=False)
+    stages: Mapped[list[object]] = mapped_column(JSONB, nullable=False)
+    model_stats: Mapped[dict[str, object]] = mapped_column(JSONB, nullable=False)
+    diagnosis: Mapped[dict[str, object]] = mapped_column(JSONB, nullable=False)
+    wall_ms: Mapped[Decimal] = mapped_column(Numeric(12, 1), nullable=False)
+    created_at: Mapped[datetime] = _created_at()
+    __table_args__ = (
+        CheckConstraint(
+            "verdict in ('verified_feasible','verified_partial','unverified','failed')",
+            name="verdict",
+        ),
+        Index("ix_optimization_runs_org_created", "organization_id", "created_at"),
+    )
+
+
+class OptimizationResult(Base):
+    """One candidate plan produced by a run; exactly one is ``recommended``."""
+
+    __tablename__ = "optimization_results"
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    run_id: Mapped[uuid.UUID] = _fk("optimization_runs", ondelete="RESTRICT")
+    candidate: Mapped[str] = mapped_column(String(40), nullable=False)
+    recommended: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    verdict: Mapped[str] = mapped_column(String(24), nullable=False)
+    fingerprint: Mapped[str | None] = mapped_column(String(64))
+    meals_planned: Mapped[int] = mapped_column(Integer, nullable=False)
+    plan: Mapped[dict[str, object] | None] = mapped_column(JSONB)
+    summary: Mapped[dict[str, object]] = mapped_column(JSONB, nullable=False)
+    created_at: Mapped[datetime] = _created_at()
+    __table_args__ = (
+        UniqueConstraint("run_id", "candidate"),
+        Index(
+            "uq_optimization_results_one_recommended",
+            "run_id",
+            unique=True,
+            postgresql_where=text("recommended"),
+        ),
+    )

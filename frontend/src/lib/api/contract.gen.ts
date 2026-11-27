@@ -158,6 +158,41 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/optimizer/runs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Runs */
+        get: operations["list_runs_api_v1_optimizer_runs_get"];
+        put?: never;
+        /** Create Run */
+        post: operations["create_run_api_v1_optimizer_runs_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/optimizer/runs/{run_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Run */
+        get: operations["get_run_api_v1_optimizer_runs__run_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/organization": {
         parameters: {
             query?: never;
@@ -319,6 +354,48 @@ export interface components {
             /** Table Name */
             table_name: string;
         };
+        /** CandidateOut */
+        CandidateOut: {
+            /** Commitments Feasible */
+            commitments_feasible: number;
+            /** Description */
+            description: string;
+            diff_vs_recommended?: components["schemas"]["PlanDiff"] | null;
+            /** Fingerprint */
+            fingerprint: string | null;
+            /** Meals Planned */
+            meals_planned: number;
+            /** Meals Rerouted */
+            meals_rerouted: number;
+            /** Name */
+            name: string;
+            /** Objectives */
+            objectives: {
+                [key: string]: number;
+            };
+            /** Substitutions Used */
+            substitutions_used: number;
+            /**
+             * Verdict
+             * @enum {string}
+             */
+            verdict: "verified_feasible" | "verified_partial" | "unverified" | "failed";
+            /** Violations */
+            violations: string[];
+        };
+        /** Change */
+        Change: {
+            /** After */
+            after: string;
+            /** Before */
+            before: string;
+            /** Field */
+            field: string;
+            /** Id */
+            id: string;
+            /** Kind */
+            kind: string;
+        };
         /** CommitmentChanged */
         CommitmentChanged: {
             /**
@@ -444,6 +521,21 @@ export interface components {
             delivery_id: string;
             /** Meals */
             meals: number;
+        };
+        /** DiagnosisOut */
+        DiagnosisOut: {
+            /** Blocked */
+            blocked: {
+                [key: string]: string[];
+            };
+            /** Explanation */
+            explanation: string;
+            /** Fully Serviceable */
+            fully_serviceable: boolean;
+            /** Shortfalls */
+            shortfalls: components["schemas"]["ShortfallOut"][];
+            /** Status */
+            status: string;
         };
         /**
          * Diet
@@ -759,6 +851,48 @@ export interface components {
             /** Status */
             status: string;
         };
+        /**
+         * OptimizationReport
+         * @description What the agent and the UI consume. ``verdict`` is the only feasibility
+         *     label: it is ``verified_*`` only if the independent validator agreed.
+         */
+        OptimizationReport: {
+            /** Candidates */
+            candidates: components["schemas"]["CandidateOut"][];
+            /** Config */
+            config: {
+                [key: string]: unknown;
+            };
+            diagnosis: components["schemas"]["DiagnosisOut"];
+            /** Fingerprint */
+            fingerprint: string | null;
+            /** Model Stats */
+            model_stats: {
+                [key: string]: number;
+            };
+            /** Objectives */
+            objectives: {
+                [key: string]: number;
+            };
+            plan: components["schemas"]["Plan"] | null;
+            /** Solver Status */
+            solver_status: string;
+            /** Stages */
+            stages: components["schemas"]["StageOut"][];
+            /** State Version */
+            state_version: number;
+            /** Validation Checks */
+            validation_checks: number;
+            /**
+             * Verdict
+             * @enum {string}
+             */
+            verdict: "verified_feasible" | "verified_partial" | "unverified" | "failed";
+            /** Violations */
+            violations: string[];
+            /** Wall Ms */
+            wall_ms: number;
+        };
         /** OrgOut */
         OrgOut: {
             /**
@@ -805,6 +939,11 @@ export interface components {
             organization_id: string;
             /** Recipes */
             recipes: components["schemas"]["RecipePlan"][];
+            /**
+             * Routing
+             * @default []
+             */
+            routing: components["schemas"]["RouteAssignment"][];
             /** Shortages */
             shortages: components["schemas"]["Shortage"][];
             /** State Version */
@@ -816,6 +955,21 @@ export interface components {
             substitutions: components["schemas"]["SubstitutionUse"][];
             /** Teams */
             teams: components["schemas"]["TeamLoad"][];
+        };
+        /** PlanDiff */
+        PlanDiff: {
+            /** After Fingerprint */
+            after_fingerprint: string;
+            /** Before Fingerprint */
+            before_fingerprint: string;
+            /** Changes */
+            changes: components["schemas"]["Change"][];
+            /** Commitments Changed */
+            commitments_changed: number;
+            /** Identical */
+            identical: boolean;
+            /** Meals Planned Delta */
+            meals_planned_delta: number;
         };
         /** PlanMetrics */
         PlanMetrics: {
@@ -912,6 +1066,94 @@ export interface components {
              */
             recipe_id: string;
         };
+        /**
+         * RouteAssignment
+         * @description Meals of a commitment carried on a delivery route.
+         *
+         *     The baseline keeps every commitment on its assigned route; the optimizer
+         *     may move meals to another usable route (a plan change needing approval).
+         */
+        RouteAssignment: {
+            /**
+             * Commitment Id
+             * Format: uuid
+             */
+            commitment_id: string;
+            /**
+             * Delivery Id
+             * Format: uuid
+             */
+            delivery_id: string;
+            /** Meals */
+            meals: number;
+        };
+        /** RunOut */
+        RunOut: {
+            /** Labels */
+            labels: {
+                [key: string]: string;
+            };
+            report: components["schemas"]["OptimizationReport"];
+            /**
+             * Run Id
+             * Format: uuid
+             */
+            run_id: string;
+        };
+        /** RunRequest */
+        RunRequest: {
+            /**
+             * Allow Rerouting
+             * @default true
+             */
+            allow_rerouting: boolean;
+            /** Correlation Id */
+            correlation_id?: string | null;
+            /**
+             * Include Pledged
+             * @default false
+             */
+            include_pledged: boolean;
+            /**
+             * Stage Deterministic Time
+             * @default 10
+             */
+            stage_deterministic_time: number;
+            /**
+             * Use Substitutions
+             * @default true
+             */
+            use_substitutions: boolean;
+            /**
+             * Waste Horizon Hours
+             * @default 72
+             */
+            waste_horizon_hours: number;
+        };
+        /** RunSummary */
+        RunSummary: {
+            /** Created At */
+            created_at: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Objectives */
+            objectives: {
+                [key: string]: unknown;
+            };
+            /** Requested By */
+            requested_by: string;
+            /** Solver Status */
+            solver_status: string;
+            /** State Version */
+            state_version: number;
+            /** Verdict */
+            verdict: string;
+            /** Wall Ms */
+            wall_ms: string;
+        };
         /** Shortage */
         Shortage: {
             /** Available Base */
@@ -925,6 +1167,34 @@ export interface components {
             missing_base: string;
             /** Required Base */
             required_base: string;
+        };
+        /** ShortfallOut */
+        ShortfallOut: {
+            /** Display */
+            display: string;
+            /** Id */
+            id: string | null;
+            /** Label */
+            label: string;
+            /** Missing */
+            missing: string;
+            /** Resource */
+            resource: string;
+            /** Unit */
+            unit: string;
+        };
+        /** StageOut */
+        StageOut: {
+            /** Deterministic Time */
+            deterministic_time: number;
+            /** Name */
+            name: string;
+            /** Objective */
+            objective: number | null;
+            /** Status */
+            status: string;
+            /** Wall Ms */
+            wall_ms: number;
         };
         /** StockOut */
         StockOut: {
@@ -1350,6 +1620,105 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["StockOut"][];
+                };
+            };
+        };
+    };
+    list_runs_api_v1_optimizer_runs_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RunSummary"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_run_api_v1_optimizer_runs_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-cornucopia-actor"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RunRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RunOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_run_api_v1_optimizer_runs__run_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                run_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

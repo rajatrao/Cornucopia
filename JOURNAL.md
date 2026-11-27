@@ -131,3 +131,36 @@ See TESTING.md "Phase 3 results".
 - [x] All calculations have reproducible tests (determinism and order-independence tests)
 
 Recommendation: proceed to Phase 4.
+
+## 2026-11-27 Phase 4: OR-Tools CP-SAT optimization engine (branch `phase-4-optimizer`)
+
+### Files created
+- Backend: `optimizer/{model,diagnosis,service}.py`, `api/optimizer.py`, `tests/test_optimizer.py`
+- DB: `db/sql/0005_optimization_runs.sql`, `db/alembic/versions/0005_optimization_runs.py`, `supabase/migrations/20261127034000_optimization_runs.sql`
+- Frontend: `app/optimizer/page.tsx`, `components/optimizer-view.tsx`, `e2e/phase4.spec.ts`; `docs/img/phase4-optimizer.png`
+
+### Files modified
+`compiler/plan.py` (routing), `compiler/planner.py`, `compiler/validator.py` (routing checks), `persistence/{models,memory}.py`, repositories, `api/app.py`, `pyproject.toml` (ortools), BFF whitelist, `lib/api/server.ts` (read retry), nav, docs.
+
+### Architecture decisions
+- Lexicographic optimisation in six stages rather than weighted sums, so no priority can be bought with another.
+- Ingredient needs are modelled as exact rationals, so the solver can fully replace an ingredient without rounding gaps. Substitute use is pinned to exactly ceil(r·ratio).
+- Feasibility is labelled only by the independent validator (`verdict`), never by solver status.
+- Rerouting is a recovery option and counts toward delivery disruption. Diets are enforced structurally.
+- The diagnosis model answers "what would it take?" in concrete units.
+- Determinism comes from a single worker, a fixed seed and deterministic-time limits.
+
+### Known limitations
+- The reference plan (minimal change) needs approved plans (Phase 6). Until then stage 3 counts only substitution rules used.
+- When there isn't enough for everyone, the optimizer maximises commitments fully met, then meals. A "fair share" policy across recipients is not modelled.
+- The no-substitution and no-rerouting candidates are re-solved per run. That is cheap at the demo scale (≈ 30 ms each).
+
+### Acceptance checklist
+- [x] Solver produces verified feasible plans (verified_feasible with full resources, or with 125 lb quinoa)
+- [x] Solver identifies infeasible scenarios (0/500 after rice cancellation without substitutes)
+- [x] Constraint violations are explained (binding resources per commitment, diagnosis shortfalls, blocked diets)
+- [x] Alternative plans can be compared (4 candidates with verdicts and deterministic diffs)
+- [x] Optimization is deterministic for fixed inputs and configuration (tests + live)
+- [x] Performance is measured on the demonstration dataset (OPTIMIZATION_ENGINE.md)
+
+Recommendation: proceed to Phase 5.

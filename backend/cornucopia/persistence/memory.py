@@ -29,6 +29,7 @@ class InMemorySupabaseClient(SupabaseClient):
         self.register_rpc("write_resource", _write_resource)
         self.register_rpc("ingest_event", _ingest_event)
         self.register_rpc("get_operational_snapshot", _snapshot)
+        self.register_rpc("record_optimization_run", _record_run)
 
     def register_rpc(self, name: str, fn: RpcFn) -> None:
         self._rpcs[name] = fn
@@ -312,3 +313,20 @@ def _snapshot(db: InMemorySupabaseClient, args: Mapping[str, Any]) -> JSON:
             rows = [r for r in rows if r.get("organization_id") == org]
         out[key] = copy.deepcopy(rows)
     return out
+
+
+def _record_run(db: InMemorySupabaseClient, args: Mapping[str, Any]) -> JSON:
+    run = dict(args["p_run"])
+    row = db.insert(
+        "optimization_runs",
+        [
+            {
+                "organization_id": args["p_organization_id"],
+                "requested_by": args["p_actor"],
+                "correlation_id": run.get("correlation_id"),
+                **{k: v for k, v in run.items() if k != "correlation_id"},
+            }
+        ],
+    )[0]
+    db.insert("optimization_results", [{"run_id": row["id"], **r} for r in args["p_results"]])
+    return {"run_id": row["id"]}
